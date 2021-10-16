@@ -7,10 +7,12 @@ import com.star.gmall.realtime.common.GmallConfig;
 import com.star.gmall.realtime.utils.MyKafkaUtil;
 import com.star.gmall.realtime.utils.MySQLUtil;
 import org.apache.commons.lang.StringUtils;
+import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.runtime.state.filesystem.FsStateBackend;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
@@ -33,18 +35,18 @@ import java.util.*;
 
 public class BaseDbApp {
 
-    private static Map<String,TableProcess> configMapping= new HashMap<>();
-    private static HashSet<String> existsFlag = new HashSet<>();
-    private static Connection connection = null;
-
     public static void main(String[] args) throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(3);
 
         env.enableCheckpointing(5000, CheckpointingMode.EXACTLY_ONCE);
         env.getCheckpointConfig().setCheckpointTimeout(60000);
-//        env.setStateBackend(new FsStateBackend("hdfs://node:9000/gmall/checkpoint"));
+        env.setStateBackend(new FsStateBackend("hdfs://node:9000/gmall/checkpoint"));
 
+        //重启策略
+        //如果没有开启checkpoint，则重启策略为norestart
+        //如果开启了checkpoint，则重启策略默认为自动帮你重试，会重试Integer.maxvalue次,这里重试可以理解为算子出错重试次数
+//        env.setRestartStrategy(RestartStrategies.noRestart());
 
         DataStreamSource<String> dbDs = env.addSource(MyKafkaUtil.getKafkaSource("ods_base_db_m", "con_db_group"));
 
@@ -62,6 +64,10 @@ public class BaseDbApp {
         final OutputTag<JSONObject> outputHbaseTag = new OutputTag<JSONObject>("side-output-"+TableProcess.SINK_TYPE_HBASE){};
 //        final OutputTag<String> outputClickHouseTag = new OutputTag<String>("side-output-ck"){};
         SingleOutputStreamOperator<JSONObject> kafkaDs = filterDs.process(new ProcessFunction<JSONObject, JSONObject>() {
+
+            private Map<String,TableProcess> configMapping= new HashMap<>();
+            private HashSet<String> existsFlag = new HashSet<>();
+            private Connection connection = null;
 
             @Override
             public void processElement(JSONObject value, Context ctx, Collector<JSONObject> out) throws Exception {
@@ -81,10 +87,13 @@ public class BaseDbApp {
                         String sinkType = tableProcess.getSinkType();
                         String columns = tableProcess.getSinkColumns();
                         if (columns != null && !"".equals(columns)) {
+                            System.out.println(data);
                             Iterator<Map.Entry<String, Object>> iterator = data.entrySet().iterator();
                             while (iterator.hasNext()) {
                                 Map.Entry<String, Object> next = iterator.next();
                                 if (!columns.contains(next.getKey())) {
+                                    //test concurrentException
+                                    data.remove(next.getKey());
                                     iterator.remove();
                                 }
                             }
@@ -126,14 +135,14 @@ public class BaseDbApp {
                 connection = DriverManager.getConnection(GmallConfig.PHOENIX_SERVER);
                 refreshMetadata();
 
-                //method 2 1min后每10分钟执行一次
+                //method 2 1min后每10分钟执行一次，定时器，周期性读取配置信息
                 Timer timer = new Timer();
                 timer.schedule(new TimerTask() {
                     @Override
                     public void run() {
-                        refreshMetadata();
+                        System.out.println(":::"+System.currentTimeMillis());refreshMetadata();
                     }
-                }, 1000 * 60, 1000 * 60 * 10);
+                }, 1000 * 60, 1000 * 60 * 5);
             }
 
             private void refreshMetadata() {
@@ -142,7 +151,7 @@ public class BaseDbApp {
                     throw new RuntimeException("无配置信息");
                 }
                 for (TableProcess tableProcess : tableProcesses) {
-                    String operateType = tableProcess.getOperateType();
+//                    String operateType = tableProcess.getOperateType();
                     String sourceTable = tableProcess.getSourceTable();
                     configMapping.put(sourceTable, tableProcess);
 
@@ -174,42 +183,41 @@ public class BaseDbApp {
 
             private String buildCreatSql(TableProcess tableProcess) {
                 String sinkPk = tableProcess.getSinkPk();
-                String sinkExtend = tableProcess.getSinkExtend();
-                String tableName = tableProcess.getSourceTable();
+                String ext = tableProcess.getSinkExtend();
+                String tableName = tableProcess.getSinkTable();
 
-                if (sinkPk == null || "".equals(sinkPk)) {
+                //主键不存在,则给定默认值
+                if (sinkPk == null) {
                     sinkPk = "id";
                 }
-                if (sinkExtend == null) {
-                    sinkExtend = "";
+                //扩展字段不存在,则给定默认值
+                if (ext == null) {
+                    ext = "";
                 }
-                StringBuilder sql = new StringBuilder("create table if not exists `" + GmallConfig.HBASE_SCHEMA + "." + tableName + "`(");
-                for (String column : tableProcess.getSinkColumns().split(",")) {
-                    if (column.equals(sinkPk)) {
-                        sql.append("`").append(column).append("`").append(" ").append("varchar primary key").append(",\n");
+                //创建字符串拼接对象,用于拼接建表语句SQL
+                StringBuilder createSql = new StringBuilder("create table if not exists " + GmallConfig.HBASE_SCHEMA + "." + tableName + "(");
+                //将列做切分,并拼接至建表语句SQL中
+                String[] fieldsArr = tableProcess.getSinkColumns().split(",");
+                for (int i = 0; i < fieldsArr.length; i++) {
+                    String field = fieldsArr[i];
+                    if (sinkPk.equals(field)) {
+                        createSql.append(field).append(" varchar primary key ");
                     } else {
-                        sql.append("`info.").append(column).append("`").append(" ").append("varchar").append(",\n");
+                        createSql.append("info.").append(field).append(" varchar");
+                    }
+                    if (i < fieldsArr.length - 1) {
+                        createSql.append(",");
                     }
                 }
-
-                sql.deleteCharAt(sql.lastIndexOf(","));
-
-                sql.append(")");
-                sql.append(sinkExtend);
-//        sql.append(")PARTITIONED BY (`dt` int)row format delimited fields terminated by '\001' \nlocation 'hdfs://master:9000/user/hive/warehouse/" + bundle.getString("hive.database") + ".db/" + tableName.substring(tableName.lastIndexOf(".") + 1) + "'\n");
-
-                long epochSecond = Instant.now().getEpochSecond();
-//        sql.append("TBLPROPERTIES (\n" +
-//                "  'last_modified_by'='hive', \n" +
-//                "  'last_modified_time'='" + epochSecond + "', \n" +
-//                "  'transient_lastDdlTime'='" + epochSecond + "')");
-                return sql.toString();
+                createSql.append(")");
+                createSql.append(ext);
+                return createSql.toString();
             }
         });
 
         DataStream<JSONObject> hbaseDs = kafkaDs.getSideOutput(outputHbaseTag);
-        kafkaDs.print();
-        hbaseDs.print();
+        kafkaDs.print("kafka>>>>");
+        hbaseDs.print("hbase>>>>");
 
         hbaseDs.addSink(new RichSinkFunction<JSONObject>() {
             Connection conn = null;
@@ -225,7 +233,8 @@ public class BaseDbApp {
                 String sink_table = value.getString("sink_table");
 
                 JSONObject data = value.getJSONObject("data");
-                String upSql = genUpsertSql(sink_table,data);
+                String upSql = genUpsertSql(sink_table.toUpperCase(),data);
+                System.out.println(upSql);
                 PreparedStatement ps = conn.prepareStatement(upSql);
                 ps.executeUpdate();
                 conn.commit();
@@ -238,6 +247,14 @@ public class BaseDbApp {
                 String valuesSql = " values ('" + StringUtils.join(jsonObject.values(), "','") + "')";
                 return upsertSql + valuesSql;
             }
+
+            @Override
+            public void close() throws Exception {
+                if (conn != null) {
+                    conn.close();
+                }
+                super.close();
+            }
         });
 
         kafkaDs.addSink(MyKafkaUtil.getKafkaSinkbySchema(new KafkaSerializationSchema<JSONObject>() {
@@ -246,6 +263,7 @@ public class BaseDbApp {
                 System.out.println("start kafka sink");
             }
 
+            //从每条数据得到该条数据应送往的主题名
             @Override
             public ProducerRecord<byte[], byte[]> serialize(JSONObject element, @Nullable Long timestamp) {
                 String sink_table = element.getString("sink_table");

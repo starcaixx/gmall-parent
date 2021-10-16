@@ -34,7 +34,6 @@ public class MySQLUtil {
                 T instance = clazz.newInstance();
 
                 //对查询出的列进行遍历，每遍历一次得到一个列名
-                System.out.println(md.getColumnCount());
                 for (int i = 1; i < md.getColumnCount(); i++) {
                     String columnName = md.getColumnName(i);
 
