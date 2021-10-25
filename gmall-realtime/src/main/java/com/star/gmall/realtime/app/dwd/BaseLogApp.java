@@ -102,6 +102,8 @@ public class BaseLogApp {
                     if (start != null && !"".equals(start)) {
                         ctx.output(startTag, start.toString());
                     } else {
+                        //日志分为两类，启动和非启动，非启动包含曝光日志
+                        out.collect(value.toString());
                         //no start log
                         JSONArray displays = value.getJSONArray("displays");
 
@@ -112,8 +114,6 @@ public class BaseLogApp {
                                 display.put("page_id", page_id);
                                 ctx.output(displayTag, display.toString());
                             }
-                        } else {
-                            out.collect(value.toString());
                         }
                     }
                 }
