@@ -4,13 +4,20 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.star.gmall.realtime.bean.OrderDetail;
 import com.star.gmall.realtime.bean.OrderInfo;
+import com.star.gmall.realtime.bean.OrderWide;
 import com.star.gmall.realtime.utils.MyKafkaUtil;
+import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
+import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.runtime.state.filesystem.FsStateBackend;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
+import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.co.ProcessJoinFunction;
+import org.apache.flink.streaming.api.windowing.time.Time;
+import org.apache.flink.util.Collector;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -26,7 +33,7 @@ public class OrderWideApp {
 
         env.enableCheckpointing(5000, CheckpointingMode.EXACTLY_ONCE);
         env.getCheckpointConfig().setCheckpointTimeout(60000);
-        env.setStateBackend(new FsStateBackend("hdfs://node:9000/gmall/uvapp/checkpoint"));
+        env.setStateBackend(new FsStateBackend("hdfs://node:9000/gmall/orderwide/checkpoint"));
 
         //重启策略
         //如果没有开启checkpoint，则重启策略为norestart
@@ -64,6 +71,30 @@ public class OrderWideApp {
 
         orderInfoDS.print("orderInfo>>>>>>");
         orderDetailDS.print("orderDetail>>>>");
+
+        //设定事件时间水位
+        SingleOutputStreamOperator<OrderInfo> orderInfoWithTimestampDS = orderInfoDS.assignTimestampsAndWatermarks(WatermarkStrategy.<OrderInfo>forMonotonousTimestamps().
+                withTimestampAssigner((order, timestamp) -> order.getCreate_ts()));
+
+        SingleOutputStreamOperator<OrderDetail> orderDetailInfoWithTimestampDS = orderDetailDS.assignTimestampsAndWatermarks(WatermarkStrategy.<OrderDetail>forMonotonousTimestamps().
+                withTimestampAssigner((order, timestamp) -> order.getCreate_ts()));
+
+
+        //设定关联的key
+        KeyedStream<OrderInfo, Long> orderInfoKeybyDS = orderInfoWithTimestampDS.keyBy(orderInfo -> orderInfo.getId());
+
+        KeyedStream<OrderDetail, Long> orderDetailKeybyDS = orderDetailInfoWithTimestampDS.keyBy(orderDetail -> orderDetail.getOrder_id());
+
+        //订单和明细表关联
+        SingleOutputStreamOperator<OrderWide> orderWideDS = orderInfoKeybyDS.intervalJoin(orderDetailKeybyDS).between(Time.seconds(-5), Time.seconds(5))
+                .process(new ProcessJoinFunction<OrderInfo, OrderDetail, OrderWide>() {
+                    @Override
+                    public void processElement(OrderInfo left, OrderDetail right, Context ctx, Collector<OrderWide> out) throws Exception {
+                        out.collect(new OrderWide(left, right));
+                    }
+                });
+
+        orderWideDS.print("joined>>>>>>>>>");
 
         env.execute();
     }
