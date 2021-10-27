@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.star.gmall.realtime.bean.TableProcess;
 import com.star.gmall.realtime.common.GmallConfig;
+import com.star.gmall.realtime.utils.DimUtil;
 import com.star.gmall.realtime.utils.MyKafkaUtil;
 import com.star.gmall.realtime.utils.MySQLUtil;
 import org.apache.commons.lang.StringUtils;
@@ -233,12 +234,22 @@ public class BaseDbApp {
                 String sink_table = value.getString("sink_table");
 
                 JSONObject data = value.getJSONObject("data");
-                String upSql = genUpsertSql(sink_table.toUpperCase(),data);
-                System.out.println(upSql);
-                PreparedStatement ps = conn.prepareStatement(upSql);
-                ps.executeUpdate();
-                conn.commit();
-                ps.close();
+                if (data != null && data.size() > 0) {
+                    String upSql = genUpsertSql(sink_table.toUpperCase(),data);
+                    System.out.println(upSql);
+                    try {
+                        PreparedStatement ps = conn.prepareStatement(upSql);
+                        ps.executeUpdate();
+                        conn.commit();
+                        ps.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                if (data.getString("type").equals("update") || "delete".equals(data.getString("type"))) {
+                    DimUtil.deleteCached(sink_table,data.getString("id"));
+                }
             }
 
             public String genUpsertSql(String tableName, JSONObject jsonObject) {

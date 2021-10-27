@@ -19,6 +19,12 @@
 
     <dependencies>
 
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>3.3.0</version>
+        </dependency>
+
         <!-- https://mvnrepository.com/artifact/org.apache.flink/flink-cep -->
         <dependency>
             <groupId>org.apache.flink</groupId>

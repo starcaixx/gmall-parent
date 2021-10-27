@@ -1,7 +1,9 @@
 package com.star.gmall.realtime.utils;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.flink.api.java.tuple.Tuple2;
+import redis.clients.jedis.Jedis;
 
 import java.util.List;
 
@@ -36,6 +38,74 @@ public class DimUtil {
             System.out.println("no dim data:"+sql);
         }
         return dimInfoJsonObj;
+    }
+
+    public static JSONObject getDimInfo(String tableName,String id) {
+        Tuple2<String, String> kv = Tuple2.of("id", id);
+        return getDimInfo(tableName,kv);
+    }
+
+    public static JSONObject getDimInfo(String tableName, Tuple2<String, String>... colNameAndValue) {
+        String whereSql = " where ";
+        String redisKey = "";
+        for (int i = 0; i < colNameAndValue.length; i++) {
+            Tuple2<String, String> nameValueTuple = colNameAndValue[i];
+            String fieldName = nameValueTuple.f0;
+            String fieldValue = nameValueTuple.f1;
+            if (i > 0) {
+                whereSql += " and ";
+                redisKey += "_";
+            }
+
+            whereSql += fieldName+"='" + fieldValue+"'";
+            redisKey += fieldValue;
+        }
+
+        Jedis jedis = null;
+        String dimJson = null;
+
+        JSONObject dimInfo = null;
+        String key = "dim:"+tableName.toLowerCase()+":"+redisKey;
+        try {
+            jedis = RedisUtil.getJedis();
+            dimJson = jedis.get(key);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (dimJson != null) {
+            dimInfo = JSON.parseObject(dimJson);
+        }else{
+            String sql = "select * from " +tableName + whereSql;
+            System.out.println("query sql:"+sql);
+
+            List<JSONObject> dimList = PhoenixUtil.queryList(sql, JSONObject.class);
+            if (dimList.size() > 0) {
+                dimInfo = dimList.get(0);
+                if (jedis != null) {
+                    jedis.setex(key,3600*24, dimInfo.toJSONString());
+                }
+            }else{
+                System.out.println("no data be fund:"+sql);
+            }
+        }
+        if (jedis != null) {
+            jedis.close();
+            System.out.println("close jedis conn");
+        }
+
+        return dimInfo;
+    }
+
+    public static void deleteCached(String tableName, String id) {
+        String key = "dim:" + tableName.toLowerCase()+":"+id;
+        try {
+            Jedis jedis = RedisUtil.getJedis();
+            jedis.del(key);
+            jedis.close();
+        } catch (Exception e) {
+            System.out.println("cached exception!");
+            e.printStackTrace();
+        }
     }
 
     public static void main(String[] args) {
