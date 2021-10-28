@@ -42,7 +42,7 @@ public class BaseDbApp {
 
         env.enableCheckpointing(5000, CheckpointingMode.EXACTLY_ONCE);
         env.getCheckpointConfig().setCheckpointTimeout(60000);
-        env.setStateBackend(new FsStateBackend("hdfs://node:9000/gmall/checkpoint"));
+        env.setStateBackend(new FsStateBackend("hdfs://node:9000/gmall/dwdbasedbapp/checkpoint"));
 
         //重启策略
         //如果没有开启checkpoint，则重启策略为norestart
@@ -93,8 +93,8 @@ public class BaseDbApp {
                             while (iterator.hasNext()) {
                                 Map.Entry<String, Object> next = iterator.next();
                                 if (!columns.contains(next.getKey())) {
-                                    //test concurrentException
-                                    data.remove(next.getKey());
+                                    //test concurrentException ConcurrentModificationException
+//                                    data.remove(next.getKey());
                                     iterator.remove();
                                 }
                             }
@@ -247,7 +247,9 @@ public class BaseDbApp {
                     }
                 }
 
-                if (data.getString("type").equals("update") || "delete".equals(data.getString("type"))) {
+                String type = value.getString("type");
+                System.out.println(type);
+                if ("update".equals(type) || "delete".equals(type)) {
                     DimUtil.deleteCached(sink_table,data.getString("id"));
                 }
             }

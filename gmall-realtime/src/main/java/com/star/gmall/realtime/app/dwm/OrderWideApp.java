@@ -2,6 +2,7 @@ package com.star.gmall.realtime.app.dwm;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.star.gmall.realtime.app.func.DimAsyncFunction;
 import com.star.gmall.realtime.bean.OrderDetail;
 import com.star.gmall.realtime.bean.OrderInfo;
 import com.star.gmall.realtime.bean.OrderWide;
@@ -11,6 +12,7 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.runtime.state.filesystem.FsStateBackend;
 import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.TimeCharacteristic;
+import org.apache.flink.streaming.api.datastream.AsyncDataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
@@ -19,9 +21,11 @@ import org.apache.flink.streaming.api.functions.co.ProcessJoinFunction;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.util.Collector;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.TimeUnit;
 
 public class OrderWideApp {
     public static void main(String[] args) throws Exception {
@@ -48,8 +52,8 @@ public class OrderWideApp {
         DataStreamSource<String> sourceOrderDetailDS = env.addSource(MyKafkaUtil.getKafkaSource(orderDetailSourceTopic, groupId));
         DataStreamSource<String> sourceOrderInfoDS = env.addSource(MyKafkaUtil.getKafkaSource(orderInfoSourceTopic, groupId));
 
-        sourceOrderDetailDS.print("orderdetail>>>>>>");
-        sourceOrderInfoDS.print("orderinfo>>>>>>>");
+//        sourceOrderDetailDS.print("orderdetail>>>>>>");
+//        sourceOrderInfoDS.print("orderinfo>>>>>>>");
         //转换结构
         SingleOutputStreamOperator<OrderDetail> orderDetailDS = sourceOrderDetailDS.map(str -> {
             DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
@@ -94,8 +98,46 @@ public class OrderWideApp {
                     }
                 });
 
-        orderWideDS.print("joined>>>>>>>>>");
 
+        //关联用户纬表
+        SingleOutputStreamOperator<OrderWide> orderWideWithUserDS = AsyncDataStream.unorderedWait(orderWideDS, new DimAsyncFunction<OrderWide>("DIM_USER_INFO") {
+
+            @Override
+            public void join(OrderWide orderWide, JSONObject jsonObject) throws Exception {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+                String birthday = jsonObject.getString("BIRTHDAY");
+                LocalDate localDate = LocalDate.parse(birthday, formatter);
+
+                long curTs = System.currentTimeMillis();
+                long betweenMs = curTs - LocalDateTime.from(localDate).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+
+                Long ageLong = betweenMs / 1000l / 60l / 60l / 24l / 365l;
+                orderWide.setUser_age(ageLong.intValue());
+                orderWide.setUser_gender(jsonObject.getString("GENDER"));
+            }
+
+            @Override
+            public String getKey(OrderWide orderWide) {
+                return String.valueOf(orderWide.getUser_id());
+            }
+        }, 60, TimeUnit.SECONDS);
+
+        orderWideWithUserDS.print("dim join user>>>>>>>");
+
+        //关联省市纬度
+        AsyncDataStream.unorderedWait(orderWideWithUserDS,new DimAsyncFunction<OrderWide>("DIM_BASE_PROVINCE"){
+
+            @Override
+            public void join(OrderWide orderWide, JSONObject jsonObject) throws Exception {
+
+            }
+
+            @Override
+            public String getKey(OrderWide orderWide) {
+                return null;
+            }
+        },60,TimeUnit.SECONDS);
         env.execute();
     }
 }

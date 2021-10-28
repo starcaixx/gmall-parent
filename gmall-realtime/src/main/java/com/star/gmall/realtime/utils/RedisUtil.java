@@ -18,7 +18,7 @@ public class RedisUtil {
             jedisPoolConfig.setMinIdle(5);//最小闲置连接数
 
             jedisPoolConfig.setTestOnBorrow(true);//取连接时进行一下测试
-            jedisPool = new JedisPool(jedisPoolConfig,"node",6379,1000);
+            jedisPool = new JedisPool(jedisPoolConfig,"localhost",6379,1000);
             System.out.println("create conn pool");
             return jedisPool.getResource();
         }else {
