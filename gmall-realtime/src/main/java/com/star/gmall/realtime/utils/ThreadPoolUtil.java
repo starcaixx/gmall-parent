@@ -3,6 +3,9 @@ package com.star.gmall.realtime.utils;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class ThreadPoolUtil {
     public static ThreadPoolExecutor pool;
@@ -16,7 +19,20 @@ public class ThreadPoolUtil {
     workqueue：任务队列，被添加到线程池中，但尚未被执行的任务
      */
 
+    private static Lock lock = new ReentrantLock();
     public static ThreadPoolExecutor getInstance() {
+        /*try{
+            if (pool == null) {
+                lock.lock();
+                if (pool == null) {
+                    pool = new ThreadPoolExecutor(4,20,300, TimeUnit.SECONDS,
+                            new LinkedBlockingDeque<Runnable>(Integer.MAX_VALUE));
+                }
+            }
+        } finally{
+            lock.unlock();
+        }*/
+
         if (pool == null) {
             synchronized (ThreadPoolUtil.class) {
                 if (pool == null) {

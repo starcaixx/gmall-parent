@@ -81,20 +81,20 @@ public class BaseDbApp {
                     value.put("type", type);
                 }
                 if (configMapping.size() > 0) {
-                    if (configMapping.containsKey(table)) {
-                        TableProcess tableProcess = configMapping.get(table);
+                    String key = table+"|"+type;
+                    if (configMapping.containsKey(key)) {
+                        TableProcess tableProcess = configMapping.get(key);
                         String sinkTable = tableProcess.getSinkTable();
                         value.put("sink_table",sinkTable);
                         String sinkType = tableProcess.getSinkType();
                         String columns = tableProcess.getSinkColumns();
                         if (columns != null && !"".equals(columns)) {
-                            System.out.println(data);
+//                            System.out.println(data);
                             Iterator<Map.Entry<String, Object>> iterator = data.entrySet().iterator();
                             while (iterator.hasNext()) {
                                 Map.Entry<String, Object> next = iterator.next();
                                 if (!columns.contains(next.getKey())) {
                                     //test concurrentException ConcurrentModificationException
-//                                    data.remove(next.getKey());
                                     iterator.remove();
                                 }
                             }
@@ -152,9 +152,9 @@ public class BaseDbApp {
                     throw new RuntimeException("无配置信息");
                 }
                 for (TableProcess tableProcess : tableProcesses) {
-//                    String operateType = tableProcess.getOperateType();
+                    String operateType = tableProcess.getOperateType();
                     String sourceTable = tableProcess.getSourceTable();
-                    configMapping.put(sourceTable, tableProcess);
+                    configMapping.put(sourceTable+"|"+operateType, tableProcess);
 
                     //如果表不存在hbase中则新建表
                     if ("hbase".equals(tableProcess.getSinkType()) && !existsFlag.contains(sourceTable)) {
@@ -281,6 +281,7 @@ public class BaseDbApp {
             public ProducerRecord<byte[], byte[]> serialize(JSONObject element, @Nullable Long timestamp) {
                 String sink_table = element.getString("sink_table");
                 JSONObject data = element.getJSONObject("data");
+                System.out.println("kafka talbe:"+sink_table);
                 return new ProducerRecord<>(sink_table,data.toJSONString().getBytes());
             }
         }));

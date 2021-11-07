@@ -52,23 +52,6 @@ public class PhoenixUtil {
             e.printStackTrace();
         } catch (InvocationTargetException e) {
             e.printStackTrace();
-        }finally {
-            if (rs != null) {
-                try {
-                    rs.close();
-                } catch (SQLException throwables) {
-                    throwables.printStackTrace();
-                }finally {
-                    if (ps != null) {
-                        try {
-                            ps.close();
-                        } catch (SQLException throwables) {
-                            throwables.printStackTrace();
-                        }
-                    }
-                }
-
-            }
         }
         return resultList;
     }

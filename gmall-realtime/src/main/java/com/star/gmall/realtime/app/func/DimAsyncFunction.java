@@ -15,6 +15,8 @@ import java.util.concurrent.ExecutorService;
  * 自定义纬度查询异步执行函数
  * RichAsyncFunction 里面的方法负责异步查询
  * DimJoinFunction  里面的方法负责将维表和主表进行关联
+ * 模版方法设计模式：
+ *  在父类中只定义方法的声明，让整个流程跑通，具体的实现延迟到子类中实现
  * @param <T>
  */
 public abstract class DimAsyncFunction<T> extends RichAsyncFunction<T,T> implements  DimJoinFunction<T> {

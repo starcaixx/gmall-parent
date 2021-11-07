@@ -45,6 +45,13 @@ public class DimUtil {
         return getDimInfo(tableName,kv);
     }
 
+    /**
+     * key  dim:tableName:字段  eg:dim:DIM_BASE_TRADEMARK:10_XX
+     * value 查询结果转换后的json
+     * @param tableName
+     * @param colNameAndValue
+     * @return
+     */
     public static JSONObject getDimInfo(String tableName, Tuple2<String, String>... colNameAndValue) {
         String whereSql = " where ";
         String redisKey = "";

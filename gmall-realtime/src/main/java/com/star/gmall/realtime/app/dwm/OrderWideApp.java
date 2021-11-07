@@ -24,6 +24,7 @@ import org.apache.flink.util.Collector;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
 
@@ -44,8 +45,8 @@ public class OrderWideApp {
         //如果开启了checkpoint，则重启策略默认为自动帮你重试，会重试Integer.maxvalue次,这里重试可以理解为算子出错重试次数
 //        env.setRestartStrategy(RestartStrategies.noRestart());
 
-        String orderDetailSourceTopic = "dwd_order_info";
-        String orderInfoSourceTopic = "dwd_order_detail";
+        String orderDetailSourceTopic = "dwd_order_detail";
+        String orderInfoSourceTopic = "dwd_order_info";
         String orderWideSinkTopic = "dwm_order_wide";
         String groupId = "order_wide_group";
 
@@ -73,10 +74,10 @@ public class OrderWideApp {
             return orderInfo;
         });
 
-        orderInfoDS.print("orderInfo>>>>>>");
-        orderDetailDS.print("orderDetail>>>>");
+//        orderInfoDS.print("orderInfo>>>>>>");
+//        orderDetailDS.print("orderDetail>>>>");
 
-        //设定事件时间水位
+        //设定事件时间水位，单调递增
         SingleOutputStreamOperator<OrderInfo> orderInfoWithTimestampDS = orderInfoDS.assignTimestampsAndWatermarks(WatermarkStrategy.<OrderInfo>forMonotonousTimestamps().
                 withTimestampAssigner((order, timestamp) -> order.getCreate_ts()));
 
@@ -98,6 +99,7 @@ public class OrderWideApp {
                     }
                 });
 
+        orderWideDS.print("orderWideDS>>>>>>>>>>");
 
         //关联用户纬表
         SingleOutputStreamOperator<OrderWide> orderWideWithUserDS = AsyncDataStream.unorderedWait(orderWideDS, new DimAsyncFunction<OrderWide>("DIM_USER_INFO") {
@@ -110,7 +112,10 @@ public class OrderWideApp {
                 LocalDate localDate = LocalDate.parse(birthday, formatter);
 
                 long curTs = System.currentTimeMillis();
-                long betweenMs = curTs - LocalDateTime.from(localDate).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+                long birthdayTs = localDate.atStartOfDay(ZoneOffset.systemDefault()).toInstant().toEpochMilli();
+                long birthdayTs1 = localDate.atStartOfDay(ZoneOffset.ofHours(8)).toInstant().toEpochMilli();
+                System.out.println("birthdayTs:"+birthdayTs+"::birthdayTs1:"+birthdayTs1);
+                long betweenMs = curTs - birthdayTs;
 
                 Long ageLong = betweenMs / 1000l / 60l / 60l / 24l / 365l;
                 orderWide.setUser_age(ageLong.intValue());
@@ -142,6 +147,7 @@ public class OrderWideApp {
             }
         }, 60, TimeUnit.SECONDS);
 
+        orderWideWithProvinceDS.print("orderWideWithProvinceDS>>>>>>>>>");
         //SKU纬度
         SingleOutputStreamOperator<OrderWide> orderWideWithSKUDS = AsyncDataStream.unorderedWait(orderWideWithProvinceDS, new DimAsyncFunction<OrderWide>("DIM_SKU_INFO") {
             @Override
@@ -158,6 +164,7 @@ public class OrderWideApp {
             }
         }, 60, TimeUnit.SECONDS);
 
+        orderWideWithSKUDS.print("orderWideWithSKUDS>>>>>>>>");
         //关联spu纬度
         SingleOutputStreamOperator<OrderWide> orderWideWithSpuDS = AsyncDataStream.unorderedWait(orderWideWithSKUDS, new DimAsyncFunction<OrderWide>("DIM_SPU_INFO") {
             @Override
@@ -171,6 +178,7 @@ public class OrderWideApp {
             }
         }, 60, TimeUnit.SECONDS);
 
+        orderWideWithSpuDS.print("orderWideWithSpuDS>>>>>>>>>");
         //品类纬度
         SingleOutputStreamOperator<OrderWide> orderWideWithCategoryDS = AsyncDataStream.unorderedWait(orderWideWithSpuDS, new DimAsyncFunction<OrderWide>("DIM_BASE_CATEGORY3") {
 
@@ -185,6 +193,7 @@ public class OrderWideApp {
             }
         }, 60, TimeUnit.SECONDS);
 
+        orderWideWithCategoryDS.print("orderWideWithCategoryDS>>>>>>>>>");
         //品牌纬度
         SingleOutputStreamOperator<OrderWide> orderWideWithTmDS = AsyncDataStream.unorderedWait(orderWideWithCategoryDS, new DimAsyncFunction<OrderWide>("DIM_BASE_TRADEMARK") {
             @Override
@@ -198,6 +207,7 @@ public class OrderWideApp {
             }
         }, 60, TimeUnit.SECONDS);
 
+        orderWideWithTmDS.print("orderWideWithTmDS>>>>>>>>>>");
         orderWideWithTmDS.map(orderWide -> JSON.toJSONString(orderWide)).addSink(MyKafkaUtil.getKafkaSink(orderWideSinkTopic));
         env.execute();
     }

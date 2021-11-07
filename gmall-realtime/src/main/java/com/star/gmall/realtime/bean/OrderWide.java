@@ -1,11 +1,14 @@
 package com.star.gmall.realtime.bean;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.apache.commons.lang3.ObjectUtils;
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 import java.math.BigDecimal;
 
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class OrderWide {
     Long detail_id;
     Long order_id ;

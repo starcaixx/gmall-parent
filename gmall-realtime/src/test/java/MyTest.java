@@ -1,3 +1,5 @@
+import redis.clients.jedis.Jedis;
+
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -12,5 +14,9 @@ public class MyTest {
 //        String format = sdf.format(localDateTime.toLocalDate());
         System.out.println(localDateTime.toLocalDate().toString().replace("-",""));
         System.out.println("20210901".compareTo("20210830"));
+
+        Jedis jedis = new Jedis("localhost", 6379);
+        System.out.println(jedis.ping());
+
     }
 }
