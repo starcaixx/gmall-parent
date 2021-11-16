@@ -37,7 +37,7 @@ public class VisitorStatsApp {
         //设置checkpoint
         env.enableCheckpointing(5000, CheckpointingMode.EXACTLY_ONCE);
         env.getCheckpointConfig().setCheckpointTimeout(60000);
-        env.setStateBackend(new FsStateBackend("hdfs://node:9000/gmall/visitorstat/checkpoint"));
+        env.setStateBackend(new FsStateBackend("hdfs://node:8020/gmall/visitorstat/checkpoint"));
 
         //重启策略
         //如果没有开启checkpoint，则重启策略为norestart
@@ -126,6 +126,7 @@ public class VisitorStatsApp {
 
         userJumpStatDS.print("userJumpStatDS>>>>>>>>>");
 
+        //理解为union
         DataStream<VisitorStats> unionDS = pageViewStatsDS.union(uniqueVistatsDS, sessionVisitDS, userJumpStatDS);
 
         //watermark

@@ -42,7 +42,7 @@ public class BaseDbApp {
 
         env.enableCheckpointing(5000, CheckpointingMode.EXACTLY_ONCE);
         env.getCheckpointConfig().setCheckpointTimeout(60000);
-        env.setStateBackend(new FsStateBackend("hdfs://node:9000/gmall/dwdbasedbapp/checkpoint"));
+        env.setStateBackend(new FsStateBackend("hdfs://node:8020/gmall/dwdbasedbapp/checkpoint"));
 
         //重启策略
         //如果没有开启checkpoint，则重启策略为norestart

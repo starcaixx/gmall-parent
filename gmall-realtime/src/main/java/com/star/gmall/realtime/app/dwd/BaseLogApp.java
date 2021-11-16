@@ -44,7 +44,7 @@ public class BaseLogApp {
             //设置超时时间
             environment.getCheckpointConfig().setCheckpointTimeout(60000);
             //设置状态后端
-//            environment.setStateBackend(new FsStateBackend("hdfs://node:9000/gmall/checkpoint/baselogapp"));
+//            environment.setStateBackend(new FsStateBackend("hdfs://node:8020/gmall/checkpoint/baselogapp"));
             System.setProperty("HADOOP_USER_NAME","star");
             //2 add source
 

@@ -34,7 +34,7 @@ public class PaymentWideApp {
 
         env.enableCheckpointing(5000, CheckpointingMode.EXACTLY_ONCE);
         env.getCheckpointConfig().setCheckpointTimeout(60000);
-        env.setStateBackend(new FsStateBackend("hdfs://node:9000/gmall/paywide/checkpoint"));
+        env.setStateBackend(new FsStateBackend("hdfs://node:8020/gmall/paywide/checkpoint"));
 
         //重启策略
         //如果没有开启checkpoint，则重启策略为norestart
@@ -81,11 +81,12 @@ public class PaymentWideApp {
 .lowerBoundExclusive(true) // optional
 .process(new IntervalJoinFunction() {...});
          */
-        SingleOutputStreamOperator<PaymentWide> paymentWideDS = orderWideKeyedDS.intervalJoin(paymentInfoKeyedDS)
-                .between(Time.seconds(-5), Time.seconds(5))
-                .process(new ProcessJoinFunction<OrderWide, PaymentInfo, PaymentWide>() {
+
+        SingleOutputStreamOperator<PaymentWide> paymentWideDS = paymentInfoKeyedDS.intervalJoin(orderWideKeyedDS)
+                .between(Time.seconds(-1800), Time.seconds(0))
+                .process(new ProcessJoinFunction<PaymentInfo, OrderWide, PaymentWide>() {
                     @Override
-                    public void processElement(OrderWide right, PaymentInfo left, Context ctx, Collector<PaymentWide> out) throws Exception {
+                    public void processElement(PaymentInfo left, OrderWide right, Context ctx, Collector<PaymentWide> out) throws Exception {
                         out.collect(new PaymentWide(left, right));
                     }
                 }).uid("payment_join");
