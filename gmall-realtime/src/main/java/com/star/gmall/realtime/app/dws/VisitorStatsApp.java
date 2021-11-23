@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.paranamer.ParanamerModule;
 import com.star.gmall.realtime.bean.VisitorStats;
+import com.star.gmall.realtime.utils.ClickHouseUtil;
 import com.star.gmall.realtime.utils.DateTimeUtil;
 import com.star.gmall.realtime.utils.MyKafkaUtil;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
@@ -25,6 +26,20 @@ import scala.Tuple4;
 
 import java.time.Duration;
 
+
+/**
+ * Desc: 访客主题宽表计算
+ * <p>
+ * ?要不要把多个明细的同样的维度统计在一起?
+ * 因为单位时间内mid的操作数据非常有限不能明显的压缩数据量（如果是数据量够大，或者单位时间够长可以）
+ * 所以用常用统计的四个维度进行聚合 渠道、新老用户、app版本、省市区域
+ * 度量值包括 启动、日活（当日首次启动）、访问页面数、新增用户数、跳出数、平均页面停留时长、总访问时长
+ * 聚合窗口： 10秒
+ * <p>
+ * 各个数据在维度聚合前不具备关联性 ，所以 先进行维度聚合
+ * 进行关联  这是一个fulljoin
+ * 可以考虑使用flinksql 完成
+ */
 public class VisitorStatsApp {
     public static void main(String[] args) throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -175,6 +190,8 @@ public class VisitorStatsApp {
         });
 
         reduceDS.print("reduceDS>>>>>>>>>");
+        reduceDS.addSink(
+                ClickHouseUtil.getJdbcSink("insert into visitor_stats_2021 values(?,?,?,?,?,?,?,?,?,?,?,?)"));
 
         env.execute();
     }
