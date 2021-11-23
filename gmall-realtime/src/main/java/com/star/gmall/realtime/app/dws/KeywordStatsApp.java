@@ -35,11 +35,11 @@ public class KeywordStatsApp {
         StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env, settings);
 
         //TODO 2.注册自定义函数
-        tableEnv.createTemporarySystemFunction("ik_analyze",  KeywordUDTF.class);
+        tableEnv.createTemporarySystemFunction("ik_analyze", KeywordUDTF.class);
 
 //TODO 3.将数据源定义为动态表
         String groupId = "keyword_stats_app";
-        String pageViewSourceTopic ="dwd_page_log";
+        String pageViewSourceTopic = "dwd_page_log";
 
 
         tableEnv.executeSql("CREATE TABLE page_view " +
@@ -47,7 +47,7 @@ public class KeywordStatsApp {
                 "page MAP<STRING,STRING>,ts BIGINT, " +
                 "rowtime AS TO_TIMESTAMP(FROM_UNIXTIME(ts/1000, 'yyyy-MM-dd HH:mm:ss')) ," +
                 "WATERMARK FOR  rowtime  AS  rowtime - INTERVAL '2' SECOND) " +
-                "WITH ("+ MyKafkaUtil.getKafkaDDL(pageViewSourceTopic,groupId)+")");
+                "WITH (" + MyKafkaUtil.getKafkaDDL(pageViewSourceTopic, groupId) + ")");
 
         //TODO 4.过滤数据
         Table fullwordView = tableEnv.sqlQuery("select page['item'] fullword ," +
@@ -58,11 +58,11 @@ public class KeywordStatsApp {
         Table keywordView = tableEnv.sqlQuery("select keyword,rowtime  from " + fullwordView + " ," +
                 " LATERAL TABLE(ik_analyze(fullword)) as T(keyword)");
         //TODO 6.根据各个关键词出现次数进行ct
-        Table keywordStatsSearch  = tableEnv.sqlQuery("select keyword,count(*) ct, '"
+        Table keywordStatsSearch = tableEnv.sqlQuery("select keyword,count(*) ct, '"
                 + GmallConstant.KEYWORD_SEARCH + "' source ," +
                 "DATE_FORMAT(TUMBLE_START(rowtime, INTERVAL '10' SECOND),'yyyy-MM-dd HH:mm:ss') stt," +
                 "DATE_FORMAT(TUMBLE_END(rowtime, INTERVAL '10' SECOND),'yyyy-MM-dd HH:mm:ss') edt," +
-                "UNIX_TIMESTAMP()*1000 ts from   "+keywordView
+                "UNIX_TIMESTAMP()*1000 ts from   " + keywordView
                 + " GROUP BY TUMBLE(rowtime, INTERVAL '10' SECOND ),keyword");
 
         //TODO 7.转换为数据流

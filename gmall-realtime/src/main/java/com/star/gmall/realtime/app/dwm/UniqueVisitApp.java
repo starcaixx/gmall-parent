@@ -46,7 +46,7 @@ public class UniqueVisitApp {
 
         SingleOutputStreamOperator<JSONObject> mapDS = kafkaDS.map(str -> JSON.parseObject(str));
 
-        KeyedStream<JSONObject, String> keybyDS = mapDS.keyBy(json->json.getJSONObject("common").getString("mid"));
+        KeyedStream<JSONObject, String> keybyDS = mapDS.keyBy(json -> json.getJSONObject("common").getString("mid"));
 
 //        keybyDS.print("key>>>>>>>");
 

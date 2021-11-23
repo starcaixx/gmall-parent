@@ -53,7 +53,7 @@ public class ProvinceStatsSqlApp {
                 " province_id,province_name,province_area_code area_code," +
                 "province_iso_code iso_code ,province_3166_2_code iso_3166_2 ," +
                 "COUNT( DISTINCT  order_id) order_count, sum(split_total_amount) order_amount," +
-                "UNIX_TIMESTAMP()*1000 ts "+
+                "UNIX_TIMESTAMP()*1000 ts " +
                 " from  ORDER_WIDE group by  TUMBLE(rowtime, INTERVAL '10' SECOND )," +
                 " province_id,province_name,province_area_code,province_iso_code,province_3166_2_code ");
 

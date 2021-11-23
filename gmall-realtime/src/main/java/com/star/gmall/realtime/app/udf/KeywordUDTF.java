@@ -14,7 +14,7 @@ public class KeywordUDTF extends TableFunction<Row> {
         List<String> keywordList = KeywordUtil.analyze(value);
         for (String keyword : keywordList) {
             Row row = new Row(1);
-            row.setField(0,keyword);
+            row.setField(0, keyword);
             collect(row);
         }
     }

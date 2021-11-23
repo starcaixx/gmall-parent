@@ -12,7 +12,7 @@ public class MyTest {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
         LocalDateTime localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(1631461178000l), ZoneId.systemDefault());
 //        String format = sdf.format(localDateTime.toLocalDate());
-        System.out.println(localDateTime.toLocalDate().toString().replace("-",""));
+        System.out.println(localDateTime.toLocalDate().toString().replace("-", ""));
         System.out.println("20210901".compareTo("20210830"));
 
         Jedis jedis = new Jedis("localhost", 6379);

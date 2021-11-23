@@ -19,10 +19,10 @@ public class PaymentWide {
     String payment_create_time;
     String callback_time;
     Long detail_id;
-    Long order_id ;
+    Long order_id;
     Long sku_id;
-    BigDecimal order_price ;
-    Long sku_num ;
+    BigDecimal order_price;
+    Long sku_num;
     String sku_name;
     Long province_id;
     String order_status;
@@ -42,7 +42,7 @@ public class PaymentWide {
     String province_area_code;
     String province_iso_code;
     String province_3166_2_code;
-    Integer user_age ;
+    Integer user_age;
     String user_gender;
 
     Long spu_id;     //作为维度数据 要关联进来
@@ -52,18 +52,18 @@ public class PaymentWide {
     String tm_name;
     String category3_name;
 
-    public PaymentWide(PaymentInfo paymentInfo, OrderWide orderWide){
+    public PaymentWide(PaymentInfo paymentInfo, OrderWide orderWide) {
         mergeOrderWide(orderWide);
         mergePaymentInfo(paymentInfo);
 
 
     }
 
-    public void  mergePaymentInfo(PaymentInfo paymentInfo  )  {
+    public void mergePaymentInfo(PaymentInfo paymentInfo) {
         if (paymentInfo != null) {
             try {
-                BeanUtils.copyProperties(this,paymentInfo);
-                payment_create_time=paymentInfo.create_time;
+                BeanUtils.copyProperties(this, paymentInfo);
+                payment_create_time = paymentInfo.create_time;
                 payment_id = paymentInfo.id;
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
@@ -73,11 +73,11 @@ public class PaymentWide {
         }
     }
 
-    public void  mergeOrderWide(OrderWide orderWide  )  {
+    public void mergeOrderWide(OrderWide orderWide) {
         if (orderWide != null) {
             try {
-                BeanUtils.copyProperties(this,orderWide);
-                order_create_time=orderWide.create_time;
+                BeanUtils.copyProperties(this, orderWide);
+                order_create_time = orderWide.create_time;
             } catch (IllegalAccessException e) {
                 e.printStackTrace();
             } catch (InvocationTargetException e) {

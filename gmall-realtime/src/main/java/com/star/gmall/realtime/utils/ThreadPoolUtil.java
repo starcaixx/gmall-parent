@@ -20,6 +20,7 @@ public class ThreadPoolUtil {
      */
 
     private static Lock lock = new ReentrantLock();
+
     public static ThreadPoolExecutor getInstance() {
         /*try{
             if (pool == null) {
@@ -37,7 +38,7 @@ public class ThreadPoolUtil {
             synchronized (ThreadPoolUtil.class) {
                 if (pool == null) {
                     System.out.println("create thread pool!");
-                    pool = new ThreadPoolExecutor(4,20,300, TimeUnit.SECONDS,
+                    pool = new ThreadPoolExecutor(4, 20, 300, TimeUnit.SECONDS,
                             new LinkedBlockingDeque<Runnable>(Integer.MAX_VALUE));
                 }
             }

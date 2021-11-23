@@ -7,13 +7,11 @@ import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
 
-/** * @Builder注解
- *      可以使用构造者方式创建对象，给属性赋值
- * @Builder.Default
- *      在使用构造者方式给属性赋值的时候，属性的初始值会丢失
- *      该注解的作用就是修复这个问题
- *      例如：我们在属性上赋值了初始值为0L，如果不加这个注解，通过构造者创建的对象属性值会变为null
- *
+/**
+ * @Builder注解 可以使用构造者方式创建对象，给属性赋值
+ * @Builder.Default 在使用构造者方式给属性赋值的时候，属性的初始值会丢失
+ * 该注解的作用就是修复这个问题
+ * 例如：我们在属性上赋值了初始值为0L，如果不加这个注解，通过构造者创建的对象属性值会变为null
  */
 @Data
 @Builder
@@ -46,13 +44,13 @@ public class ProductStats {
     Long order_sku_num = 0L; //下单商品个数
 
     @Builder.Default   //下单商品金额
-    BigDecimal order_amount = BigDecimal.ZERO;
+            BigDecimal order_amount = BigDecimal.ZERO;
 
     @Builder.Default
     Long order_ct = 0L; //订单数
 
     @Builder.Default   //支付金额
-    BigDecimal payment_amount = BigDecimal.ZERO;
+            BigDecimal payment_amount = BigDecimal.ZERO;
 
     @Builder.Default
     Long paid_order_ct = 0L;  //支付订单数

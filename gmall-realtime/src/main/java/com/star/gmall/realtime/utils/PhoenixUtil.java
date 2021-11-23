@@ -25,7 +25,7 @@ public class PhoenixUtil {
         }
     }
 
-    public static <T> List<T> queryList(String sql,Class<T> clazz) {
+    public static <T> List<T> queryList(String sql, Class<T> clazz) {
         if (conn == null) {
             queryInit();
         }
@@ -40,7 +40,7 @@ public class PhoenixUtil {
             while (rs.next()) {
                 T rowData = clazz.newInstance();
                 for (int i = 1; i < md.getColumnCount(); i++) {
-                    BeanUtils.setProperty(rowData,md.getColumnName(i),rs.getObject(i));
+                    BeanUtils.setProperty(rowData, md.getColumnName(i), rs.getObject(i));
                 }
                 resultList.add(rowData);
             }

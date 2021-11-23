@@ -62,11 +62,12 @@ public class BaseDbApp {
         });
 
 
-        final OutputTag<JSONObject> outputHbaseTag = new OutputTag<JSONObject>("side-output-"+TableProcess.SINK_TYPE_HBASE){};
+        final OutputTag<JSONObject> outputHbaseTag = new OutputTag<JSONObject>("side-output-" + TableProcess.SINK_TYPE_HBASE) {
+        };
 //        final OutputTag<String> outputClickHouseTag = new OutputTag<String>("side-output-ck"){};
         SingleOutputStreamOperator<JSONObject> kafkaDs = filterDs.process(new ProcessFunction<JSONObject, JSONObject>() {
 
-            private Map<String,TableProcess> configMapping= new HashMap<>();
+            private Map<String, TableProcess> configMapping = new HashMap<>();
             private HashSet<String> existsFlag = new HashSet<>();
             private Connection connection = null;
 
@@ -81,11 +82,11 @@ public class BaseDbApp {
                     value.put("type", type);
                 }
                 if (configMapping.size() > 0) {
-                    String key = table+"|"+type;
+                    String key = table + "|" + type;
                     if (configMapping.containsKey(key)) {
                         TableProcess tableProcess = configMapping.get(key);
                         String sinkTable = tableProcess.getSinkTable();
-                        value.put("sink_table",sinkTable);
+                        value.put("sink_table", sinkTable);
                         String sinkType = tableProcess.getSinkType();
                         String columns = tableProcess.getSinkColumns();
                         if (columns != null && !"".equals(columns)) {
@@ -104,7 +105,7 @@ public class BaseDbApp {
                             ctx.output(outputHbaseTag, value);
                         } else if (TableProcess.SINK_TYPE_KAFKA.equals(sinkType)) {
                             out.collect(value);
-                        }else{
+                        } else {
                             //todo: send to other
                         }
 
@@ -141,7 +142,8 @@ public class BaseDbApp {
                 timer.schedule(new TimerTask() {
                     @Override
                     public void run() {
-                        System.out.println(":::"+System.currentTimeMillis());refreshMetadata();
+                        System.out.println(":::" + System.currentTimeMillis());
+                        refreshMetadata();
                     }
                 }, 1000 * 60, 1000 * 60 * 5);
             }
@@ -154,7 +156,7 @@ public class BaseDbApp {
                 for (TableProcess tableProcess : tableProcesses) {
                     String operateType = tableProcess.getOperateType();
                     String sourceTable = tableProcess.getSourceTable();
-                    configMapping.put(sourceTable+"|"+operateType, tableProcess);
+                    configMapping.put(sourceTable + "|" + operateType, tableProcess);
 
                     //如果表不存在hbase中则新建表
                     if ("hbase".equals(tableProcess.getSinkType()) && !existsFlag.contains(sourceTable)) {
@@ -222,6 +224,7 @@ public class BaseDbApp {
 
         hbaseDs.addSink(new RichSinkFunction<JSONObject>() {
             Connection conn = null;
+
             @Override
             public void open(Configuration parameters) throws Exception {
                 Class.forName("org.apache.phoenix.jdbc.PhoenixDriver");
@@ -235,7 +238,7 @@ public class BaseDbApp {
 
                 JSONObject data = value.getJSONObject("data");
                 if (data != null && data.size() > 0) {
-                    String upSql = genUpsertSql(sink_table.toUpperCase(),data);
+                    String upSql = genUpsertSql(sink_table.toUpperCase(), data);
                     System.out.println(upSql);
                     try {
                         PreparedStatement ps = conn.prepareStatement(upSql);
@@ -250,7 +253,7 @@ public class BaseDbApp {
                 String type = value.getString("type");
                 System.out.println(type);
                 if ("update".equals(type) || "delete".equals(type)) {
-                    DimUtil.deleteCached(sink_table,data.getString("id"));
+                    DimUtil.deleteCached(sink_table, data.getString("id"));
                 }
             }
 
@@ -281,8 +284,8 @@ public class BaseDbApp {
             public ProducerRecord<byte[], byte[]> serialize(JSONObject element, @Nullable Long timestamp) {
                 String sink_table = element.getString("sink_table");
                 JSONObject data = element.getJSONObject("data");
-                System.out.println("kafka talbe:"+sink_table);
-                return new ProducerRecord<>(sink_table,data.toJSONString().getBytes());
+                System.out.println("kafka talbe:" + sink_table);
+                return new ProducerRecord<>(sink_table, data.toJSONString().getBytes());
             }
         }));
 

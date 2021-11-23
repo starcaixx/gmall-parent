@@ -62,21 +62,21 @@ public class ProductStatsApp {
         String favorInfoSourceTopic = "dwd_favor_info";
         String refundInfoSourceTopic = "dwd_order_refund_info";
         String commentInfoSourceTopic = "dwd_comment_info";
-        FlinkKafkaConsumer<String> pageViewSource  = MyKafkaUtil.getKafkaSource(pageViewSourceTopic,groupId);
-        FlinkKafkaConsumer<String> orderWideSource  = MyKafkaUtil.getKafkaSource(orderWideSourceTopic,groupId);
-        FlinkKafkaConsumer<String> paymentWideSource  = MyKafkaUtil.getKafkaSource(paymentWideSourceTopic,groupId);
-        FlinkKafkaConsumer<String> favorInfoSourceSouce  = MyKafkaUtil.getKafkaSource(favorInfoSourceTopic,groupId);
-        FlinkKafkaConsumer<String> cartInfoSource  = MyKafkaUtil.getKafkaSource(cartInfoSourceTopic,groupId);
-        FlinkKafkaConsumer<String> refundInfoSource  = MyKafkaUtil.getKafkaSource(refundInfoSourceTopic,groupId);
-        FlinkKafkaConsumer<String> commentInfoSource  = MyKafkaUtil.getKafkaSource(commentInfoSourceTopic,groupId);
+        FlinkKafkaConsumer<String> pageViewSource = MyKafkaUtil.getKafkaSource(pageViewSourceTopic, groupId);
+        FlinkKafkaConsumer<String> orderWideSource = MyKafkaUtil.getKafkaSource(orderWideSourceTopic, groupId);
+        FlinkKafkaConsumer<String> paymentWideSource = MyKafkaUtil.getKafkaSource(paymentWideSourceTopic, groupId);
+        FlinkKafkaConsumer<String> favorInfoSourceSouce = MyKafkaUtil.getKafkaSource(favorInfoSourceTopic, groupId);
+        FlinkKafkaConsumer<String> cartInfoSource = MyKafkaUtil.getKafkaSource(cartInfoSourceTopic, groupId);
+        FlinkKafkaConsumer<String> refundInfoSource = MyKafkaUtil.getKafkaSource(refundInfoSourceTopic, groupId);
+        FlinkKafkaConsumer<String> commentInfoSource = MyKafkaUtil.getKafkaSource(commentInfoSourceTopic, groupId);
 
         DataStreamSource<String> pageViewDStream = env.addSource(pageViewSource);
         DataStreamSource<String> favorInfoDStream = env.addSource(favorInfoSourceSouce);
-        DataStreamSource<String> orderWideDStream= env.addSource(orderWideSource);
-        DataStreamSource<String> paymentWideDStream= env.addSource(paymentWideSource);
-        DataStreamSource<String> cartInfoDStream= env.addSource(cartInfoSource);
-        DataStreamSource<String> refundInfoDStream= env.addSource(refundInfoSource);
-        DataStreamSource<String> commentInfoDStream= env.addSource(commentInfoSource);
+        DataStreamSource<String> orderWideDStream = env.addSource(orderWideSource);
+        DataStreamSource<String> paymentWideDStream = env.addSource(paymentWideSource);
+        DataStreamSource<String> cartInfoDStream = env.addSource(cartInfoSource);
+        DataStreamSource<String> refundInfoDStream = env.addSource(refundInfoSource);
+        DataStreamSource<String> commentInfoDStream = env.addSource(commentInfoSource);
 
         //TODO 2.对获取的流数据进行结构的转换
 //2.1转换曝光及页面流数据
@@ -186,7 +186,7 @@ public class ProductStatsApp {
         //TODO 3.把统一的数据结构流合并为一个流
         DataStream<ProductStats> productStatDetailDStream = pageAndDispStatsDstream.union(
                 orderWideStatsDstream, cartStatsDstream,
-                paymentStatsDstream, refundStatsDstream,favorStatsDstream,
+                paymentStatsDstream, refundStatsDstream, favorStatsDstream,
                 commonInfoStatsDstream);
 
         productStatDetailDStream.print("after union:");
@@ -267,6 +267,7 @@ public class ProductStatsApp {
                                 productStats.setSpu_id(jsonObject.getLong("SPU_ID"));
                                 productStats.setTm_id(jsonObject.getLong("TM_ID"));
                             }
+
                             @Override
                             public String getKey(ProductStats productStats) {
                                 return String.valueOf(productStats.getSku_id());
@@ -281,6 +282,7 @@ public class ProductStatsApp {
                             public void join(ProductStats productStats, JSONObject jsonObject) throws Exception {
                                 productStats.setSpu_name(jsonObject.getString("SPU_NAME"));
                             }
+
                             @Override
                             public String getKey(ProductStats productStats) {
                                 return String.valueOf(productStats.getSpu_id());
@@ -296,6 +298,7 @@ public class ProductStatsApp {
                             public void join(ProductStats productStats, JSONObject jsonObject) throws Exception {
                                 productStats.setCategory3_name(jsonObject.getString("NAME"));
                             }
+
                             @Override
                             public String getKey(ProductStats productStats) {
                                 return String.valueOf(productStats.getCategory3_id());
@@ -310,6 +313,7 @@ public class ProductStatsApp {
                             public void join(ProductStats productStats, JSONObject jsonObject) throws Exception {
                                 productStats.setTm_name(jsonObject.getString("TM_NAME"));
                             }
+
                             @Override
                             public String getKey(ProductStats productStats) {
                                 return String.valueOf(productStats.getTm_id());

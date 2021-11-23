@@ -19,18 +19,18 @@ public class ProvinceStats {
     private String iso_code;
     private String iso_3166_2;
     private BigDecimal order_amount;
-    private Long  order_count;
+    private Long order_count;
     private Long ts;
 
-    public ProvinceStats(OrderWide orderWide){
+    public ProvinceStats(OrderWide orderWide) {
         province_id = orderWide.getProvince_id();
         order_amount = orderWide.getSplit_total_amount();
-        province_name=orderWide.getProvince_name();
-        area_code=orderWide.getProvince_area_code();
-        iso_3166_2=orderWide.getProvince_iso_code();
-        iso_code=orderWide.getProvince_iso_code();
+        province_name = orderWide.getProvince_name();
+        area_code = orderWide.getProvince_area_code();
+        iso_3166_2 = orderWide.getProvince_iso_code();
+        iso_code = orderWide.getProvince_iso_code();
 
         order_count = 1L;
-        ts=new Date().getTime();
+        ts = new Date().getTime();
     }
 }

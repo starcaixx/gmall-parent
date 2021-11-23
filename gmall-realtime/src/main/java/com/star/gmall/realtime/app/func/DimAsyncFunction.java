@@ -16,10 +16,11 @@ import java.util.concurrent.ExecutorService;
  * RichAsyncFunction 里面的方法负责异步查询
  * DimJoinFunction  里面的方法负责将维表和主表进行关联
  * 模版方法设计模式：
- *  在父类中只定义方法的声明，让整个流程跑通，具体的实现延迟到子类中实现
+ * 在父类中只定义方法的声明，让整个流程跑通，具体的实现延迟到子类中实现
+ *
  * @param <T>
  */
-public abstract class DimAsyncFunction<T> extends RichAsyncFunction<T,T> implements  DimJoinFunction<T> {
+public abstract class DimAsyncFunction<T> extends RichAsyncFunction<T, T> implements DimJoinFunction<T> {
     ExecutorService executorService = null;
     public String tableName = null;
 
@@ -35,7 +36,7 @@ public abstract class DimAsyncFunction<T> extends RichAsyncFunction<T,T> impleme
 
     @Override
     public void asyncInvoke(T input, ResultFuture<T> resultFuture) throws Exception {
-        executorService.submit(()->{
+        executorService.submit(() -> {
             try {
                 long start = System.currentTimeMillis();
 
@@ -45,16 +46,16 @@ public abstract class DimAsyncFunction<T> extends RichAsyncFunction<T,T> impleme
                 //根据主键获取纬度对象数据
                 JSONObject dimJsonObj = DimUtil.getDimInfo(tableName, key);
 
-                System.out.println("dimJsonObj::"+dimJsonObj);
+                System.out.println("dimJsonObj::" + dimJsonObj);
 
                 if (dimJsonObj != null) {
                     //纬度数据和流数据关联
-                    join(input,dimJsonObj);
+                    join(input, dimJsonObj);
                 }
 
-                System.out.println("input:"+input);
+                System.out.println("input:" + input);
                 long end = System.currentTimeMillis();
-                System.out.println("async cost "+(end - start) + "ms");
+                System.out.println("async cost " + (end - start) + "ms");
 
                 resultFuture.complete(Arrays.asList(input));
             } catch (Exception e) {

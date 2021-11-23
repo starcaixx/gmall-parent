@@ -14,7 +14,7 @@ import java.util.List;
  */
 public class MySQLUtil {
 
-    public static <T> List<T> queryList(String sql,Class<T> clazz,Boolean underScoreToCamel) {
+    public static <T> List<T> queryList(String sql, Class<T> clazz, Boolean underScoreToCamel) {
         Connection conn = null;
         PreparedStatement ps = null;
         ResultSet rs = null;
@@ -38,10 +38,10 @@ public class MySQLUtil {
                     String columnName = md.getColumnName(i);
 
                     if (underScoreToCamel) {
-                        columnName = CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL,columnName);
+                        columnName = CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, columnName);
                     }
 
-                    BeanUtils.setProperty(instance,columnName,rs.getObject(i));
+                    BeanUtils.setProperty(instance, columnName, rs.getObject(i));
                 }
 
                 resultLists.add(instance);
@@ -66,13 +66,13 @@ public class MySQLUtil {
                     rs.close();
                 } catch (SQLException throwables) {
                     throwables.printStackTrace();
-                }finally {
+                } finally {
                     if (ps != null) {
                         try {
                             ps.close();
                         } catch (SQLException throwables) {
                             throwables.printStackTrace();
-                        }finally {
+                        } finally {
                             if (conn != null) {
                                 try {
                                     conn.close();

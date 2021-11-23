@@ -26,7 +26,7 @@ public class LoggerController {
 
         log.info(jsonLog);
 
-        kafkaTemplate.send("ods_base_log",jsonLog);
+        kafkaTemplate.send("ods_base_log", jsonLog);
 //        Properties prop = new Properties();
 //        prop.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,"node:9092");
 //        prop.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,"");

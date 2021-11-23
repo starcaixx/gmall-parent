@@ -26,8 +26,8 @@ public class DimUtil {
         }
 
         //组合查询sql
-        String sql = "select * from " + tableName+whereSql;
-        System.out.println("sql:>>>:"+sql);
+        String sql = "select * from " + tableName + whereSql;
+        System.out.println("sql:>>>:" + sql);
 
         JSONObject dimInfoJsonObj = null;
         List<JSONObject> dimList = PhoenixUtil.queryList(sql, JSONObject.class);
@@ -35,19 +35,20 @@ public class DimUtil {
             //因为关联维度，肯定都是根据key关联得到一条记录
             dimInfoJsonObj = dimList.get(0);
         } else {
-            System.out.println("no dim data:"+sql);
+            System.out.println("no dim data:" + sql);
         }
         return dimInfoJsonObj;
     }
 
-    public static JSONObject getDimInfo(String tableName,String id) {
+    public static JSONObject getDimInfo(String tableName, String id) {
         Tuple2<String, String> kv = Tuple2.of("id", id);
-        return getDimInfo(tableName,kv);
+        return getDimInfo(tableName, kv);
     }
 
     /**
      * key  dim:tableName:字段  eg:dim:DIM_BASE_TRADEMARK:10_XX
      * value 查询结果转换后的json
+     *
      * @param tableName
      * @param colNameAndValue
      * @return
@@ -64,7 +65,7 @@ public class DimUtil {
                 redisKey += "_";
             }
 
-            whereSql += fieldName+"='" + fieldValue+"'";
+            whereSql += fieldName + "='" + fieldValue + "'";
             redisKey += fieldValue;
         }
 
@@ -72,7 +73,7 @@ public class DimUtil {
         String dimJson = null;
 
         JSONObject dimInfo = null;
-        String key = "dim:"+tableName.toLowerCase()+":"+redisKey;
+        String key = "dim:" + tableName.toLowerCase() + ":" + redisKey;
         try {
             jedis = RedisUtil.getJedis();
             dimJson = jedis.get(key);
@@ -81,18 +82,18 @@ public class DimUtil {
         }
         if (dimJson != null) {
             dimInfo = JSON.parseObject(dimJson);
-        }else{
-            String sql = "select * from " +tableName + whereSql;
-            System.out.println("query sql:"+sql);
+        } else {
+            String sql = "select * from " + tableName + whereSql;
+            System.out.println("query sql:" + sql);
 
             List<JSONObject> dimList = PhoenixUtil.queryList(sql, JSONObject.class);
             if (dimList.size() > 0) {
                 dimInfo = dimList.get(0);
                 if (jedis != null) {
-                    jedis.setex(key,3600*24, dimInfo.toJSONString());
+                    jedis.setex(key, 3600 * 24, dimInfo.toJSONString());
                 }
-            }else{
-                System.out.println("no data be fund:"+sql);
+            } else {
+                System.out.println("no data be fund:" + sql);
             }
         }
         if (jedis != null) {
@@ -104,7 +105,7 @@ public class DimUtil {
     }
 
     public static void deleteCached(String tableName, String id) {
-        String key = "dim:" + tableName.toLowerCase()+":"+id;
+        String key = "dim:" + tableName.toLowerCase() + ":" + id;
         try {
             Jedis jedis = RedisUtil.getJedis();
             jedis.del(key);

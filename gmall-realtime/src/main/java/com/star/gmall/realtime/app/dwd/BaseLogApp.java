@@ -45,7 +45,7 @@ public class BaseLogApp {
             environment.getCheckpointConfig().setCheckpointTimeout(60000);
             //设置状态后端
 //            environment.setStateBackend(new FsStateBackend("hdfs://node:8020/gmall/checkpoint/baselogapp"));
-            System.setProperty("HADOOP_USER_NAME","star");
+            System.setProperty("HADOOP_USER_NAME", "star");
             //2 add source
 
             DataStreamSource<String> kafkaSource = environment.addSource(MyKafkaUtil.getKafkaSource("ods_base_log", "con_log_group"));
@@ -56,7 +56,7 @@ public class BaseLogApp {
             });
 
             KeyedStream<JSONObject, Object> keybyDS = JsonDS.keyBy(json ->
-                json.getJSONObject("common").getString("mid")
+                    json.getJSONObject("common").getString("mid")
             );
 
             SingleOutputStreamOperator<JSONObject> mapDsWithFlag = keybyDS.map(new RichMapFunction<JSONObject, JSONObject>() {
@@ -91,8 +91,10 @@ public class BaseLogApp {
             });
 
 
-            final OutputTag<String> startTag = new OutputTag<String>("side-output-start"){};
-            final OutputTag<String> displayTag = new OutputTag<String>("side-output-display"){};
+            final OutputTag<String> startTag = new OutputTag<String>("side-output-start") {
+            };
+            final OutputTag<String> displayTag = new OutputTag<String>("side-output-display") {
+            };
 
             SingleOutputStreamOperator<String> processDS = mapDsWithFlag.process(new ProcessFunction<JSONObject, String>() {
                 @Override

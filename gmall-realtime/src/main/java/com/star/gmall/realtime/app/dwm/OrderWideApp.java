@@ -114,7 +114,7 @@ public class OrderWideApp {
                 long curTs = System.currentTimeMillis();
                 long birthdayTs = localDate.atStartOfDay(ZoneOffset.systemDefault()).toInstant().toEpochMilli();
                 long birthdayTs1 = localDate.atStartOfDay(ZoneOffset.ofHours(8)).toInstant().toEpochMilli();
-                System.out.println("birthdayTs:"+birthdayTs+"::birthdayTs1:"+birthdayTs1);
+                System.out.println("birthdayTs:" + birthdayTs + "::birthdayTs1:" + birthdayTs1);
                 long betweenMs = curTs - birthdayTs;
 
                 Long ageLong = betweenMs / 1000l / 60l / 60l / 24l / 365l;
