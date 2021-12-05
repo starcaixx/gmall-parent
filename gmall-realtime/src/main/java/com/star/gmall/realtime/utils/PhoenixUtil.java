@@ -3,7 +3,6 @@ package com.star.gmall.realtime.utils;
 import com.star.gmall.realtime.common.GmallConfig;
 import net.minidev.json.JSONObject;
 import org.apache.commons.beanutils.BeanUtils;
-import org.codehaus.jackson.map.util.BeanUtil;
 
 import java.lang.reflect.InvocationTargetException;
 import java.sql.*;
@@ -58,7 +57,7 @@ public class PhoenixUtil {
 
 
     public static void main(String[] args) {
-        List<JSONObject> jsonObjects = queryList("select * from base_trademark", JSONObject.class);
+        List<JSONObject> jsonObjects = queryList("select * from DIM_STK_BASIC_INFO", JSONObject.class);
         System.out.println(jsonObjects);
     }
 }

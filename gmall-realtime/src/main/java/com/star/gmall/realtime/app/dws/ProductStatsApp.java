@@ -120,7 +120,7 @@ public class ProductStatsApp {
                     OrderWide orderWide = JSON.parseObject(json, OrderWide.class);
                     System.out.println("orderWide:===" + orderWide);
                     String create_time = orderWide.getCreate_time();
-                    Long ts = DateTimeUtil.toTs(create_time);
+                    Long ts = DateTimeUtil.str2Ts(create_time);
                     return ProductStats.builder().sku_id(orderWide.getSku_id())
                             .orderIdSet(new HashSet(Collections.singleton(orderWide.getOrder_id())))
                             .order_sku_num(orderWide.getSku_num())
@@ -131,7 +131,7 @@ public class ProductStatsApp {
         SingleOutputStreamOperator<ProductStats> favorStatsDstream = favorInfoDStream.map(
                 json -> {
                     JSONObject favorInfo = JSON.parseObject(json);
-                    Long ts = DateTimeUtil.toTs(favorInfo.getString("create_time"));
+                    Long ts = DateTimeUtil.str2Ts(favorInfo.getString("create_time"));
                     return ProductStats.builder().sku_id(favorInfo.getLong("sku_id"))
                             .favor_ct(1L).ts(ts).build();
                 });
@@ -140,7 +140,7 @@ public class ProductStatsApp {
         SingleOutputStreamOperator<ProductStats> cartStatsDstream = cartInfoDStream.map(
                 json -> {
                     JSONObject cartInfo = JSON.parseObject(json);
-                    Long ts = DateTimeUtil.toTs(cartInfo.getString("create_time"));
+                    Long ts = DateTimeUtil.str2Ts(cartInfo.getString("create_time"));
                     return ProductStats.builder().sku_id(cartInfo.getLong("sku_id"))
                             .cart_ct(1L).ts(ts).build();
                 });
@@ -149,7 +149,7 @@ public class ProductStatsApp {
         SingleOutputStreamOperator<ProductStats> paymentStatsDstream = paymentWideDStream.map(
                 json -> {
                     PaymentWide paymentWide = JSON.parseObject(json, PaymentWide.class);
-                    Long ts = DateTimeUtil.toTs(paymentWide.getPayment_create_time());
+                    Long ts = DateTimeUtil.str2Ts(paymentWide.getPayment_create_time());
                     return ProductStats.builder().sku_id(paymentWide.getSku_id())
                             .payment_amount(paymentWide.getSplit_total_amount())
                             .paidOrderIdSet(new HashSet(Collections.singleton(paymentWide.getOrder_id())))
@@ -160,7 +160,7 @@ public class ProductStatsApp {
         SingleOutputStreamOperator<ProductStats> refundStatsDstream = refundInfoDStream.map(
                 json -> {
                     JSONObject refundJsonObj = JSON.parseObject(json);
-                    Long ts = DateTimeUtil.toTs(refundJsonObj.getString("create_time"));
+                    Long ts = DateTimeUtil.str2Ts(refundJsonObj.getString("create_time"));
                     ProductStats productStats = ProductStats.builder()
                             .sku_id(refundJsonObj.getLong("sku_id"))
                             .refund_amount(refundJsonObj.getBigDecimal("refund_amount"))
@@ -175,7 +175,7 @@ public class ProductStatsApp {
         SingleOutputStreamOperator<ProductStats> commonInfoStatsDstream = commentInfoDStream.map(
                 json -> {
                     JSONObject commonJsonObj = JSON.parseObject(json);
-                    Long ts = DateTimeUtil.toTs(commonJsonObj.getString("create_time"));
+                    Long ts = DateTimeUtil.str2Ts(commonJsonObj.getString("create_time"));
                     Long goodCt = GmallConstant.APPRAISE_GOOD.equals(commonJsonObj.getString("appraise")) ? 1L : 0L;
                     ProductStats productStats = ProductStats.builder()
                             .sku_id(commonJsonObj.getLong("sku_id"))
