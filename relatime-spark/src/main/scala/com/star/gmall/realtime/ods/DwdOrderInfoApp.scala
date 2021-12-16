@@ -1,10 +1,11 @@
 package com.star.gmall.realtime.ods
 import java.time.LocalDate
 
-import com.star.gmall.realtime.bean.{OrderInfo, UserStatus}
-import com.star.gmall.realtime.util.{EsUtils, MyKafkaUtil, OffsetManager, PhoenixUtil}
+import com.star.gmall.realtime.bean.{OrderInfo, ProvinceInfo, UserInfo, UserStatus}
+import com.star.gmall.realtime.util.{EsUtils, MyKafkaUtil, OffsetManager, PhoenixUtil, SparkSqlUtil}
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.streaming.StreamingContext
 import org.apache.spark.streaming.dstream.DStream
 import org.apache.spark.streaming.kafka010.OffsetRange
@@ -51,6 +52,46 @@ object DwdOrderInfoApp extends BaseApp {
           } else orders
       }
 
+    val spark = SparkSession.builder()
+      .config(ssc.sparkContext.getConf).getOrCreate()
+
+    import spark.implicits._
+
+    resultDS.transform(rdd=>{
+      rdd.cache()
+      val provinceIds = rdd.map(_.province_id).collect().mkString("'", "','", "'")
+      val userIds = rdd.map(_.user_id).collect().mkString("'", "','", "'")
+
+      val provinceSql = s"select * from gmall_province_info where id in (${provinceIds})"
+      val userSql = s"select * from gmall_user_info where id in (${userIds})"
+
+
+      val provinceInfoRDD = SparkSqlUtil
+        .getRDD[ProvinceInfo](spark, provinceSql)
+        .map(info => (info.id, info))
+      val userInfoRDD = SparkSqlUtil.getRDD[UserInfo](spark, userSql)
+        .map(info => (info.id, info))
+
+      rdd.map(info=>(info.province_id.toString,info))
+        .join(provinceInfoRDD)
+        .map{
+          case (province_id,(orderInfo,provinceInfo))=>
+            orderInfo.province_name = provinceInfo.name
+            orderInfo.province_area_code = provinceInfo.area_code
+            orderInfo.province_iso_code = provinceInfo.iso_code
+            orderInfo
+        }.map(info=>(info.user_id.toString,info))
+        .join(userInfoRDD)
+        .map{
+          case (user_id,(orderInfo,userInfo))=>{
+            orderInfo.user_age_group = userInfo.age_group
+            orderInfo.user_age_group = userInfo.gender_name
+            orderInfo
+          }
+        }
+    })
+
+
     resultDS.foreachRDD(rdd=>{
       import org.apache.phoenix.spark._
       rdd.cache()
@@ -69,6 +110,7 @@ object DwdOrderInfoApp extends BaseApp {
         })
         producer.close()
       })
+
 
       OffsetManager.saveOffsets(offsetRanges,groupId,topic)
 

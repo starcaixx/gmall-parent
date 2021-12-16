@@ -2,6 +2,7 @@ package com.star.gmall.realtime.ods
 import com.star.gmall.realtime.bean.{ProvinceInfo, UserInfo}
 import com.star.gmall.realtime.util.OffsetManager
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming.StreamingContext
 import org.apache.spark.streaming.dstream.DStream
 import org.apache.spark.streaming.kafka010.OffsetRange
@@ -20,6 +21,19 @@ object DwdDimApp extends BaseAppV2 {
     "ods_base_province",
     "ods_base_trademark")
 
+  def saveToPhoenix[T <: Product](rdd: RDD[(String, String)], odsTopic: String, tableName: String, cols: Seq[String]) = {
+    import org.apache.phoenix.spark._
+    rdd.filter(_._1==odsTopic)
+      .map{
+        case (topic,content)=>
+          implicit val f = org.json4s.DefaultFormats
+          JsonMethods.parse(content).extract[T]
+      }.saveToPhoenix(tableName,
+      cols,//顺序和样例类保持一致
+      zkUrl = Option("node:2181"))
+
+  }
+
   override def run(ssc: StreamingContext, offsetRanges: ListBuffer[OffsetRange], sourceStream: DStream[ConsumerRecord[String, String]]): Unit = {
     sourceStream.map(record=>{
       (record.topic(),record.value())
@@ -32,14 +46,11 @@ object DwdDimApp extends BaseAppV2 {
           print("")
         case "ods_user_info"=>
           import org.apache.phoenix.spark._
-          rdd.filter(_._1=="ods_user_info")
-          .map{
-            case (topic,content)=>
-              implicit val f = org.json4s.DefaultFormats
-              JsonMethods.parse(content).extract[UserInfo]
-          }.saveToPhoenix("gmall_user_info",
-            Seq("ID","USER_LEVEL","BIRTHDAY","GENDER","AGE_GROUP","GENDER_NAME"),
-            zkUrl = Option("node:2181"))
+
+          saveToPhoenix[UserInfo](rdd,
+          "ods_user_info",
+          "gmall_user_info",
+            Seq("ID","USER_LEVEL","BIRTHDAY","GENDER","AGE_GROUP","GENDER_NAME"))
       }
     })
     /*.foreachRDD(rdd=>{
