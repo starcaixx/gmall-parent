@@ -6,11 +6,13 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming.StreamingContext
 import org.apache.spark.streaming.dstream.DStream
 import org.apache.spark.streaming.kafka010.OffsetRange
+import org.json4s.Formats
 import org.json4s.jackson.JsonMethods
 
 import scala.collection.mutable.ListBuffer
 
 object DwdDimApp extends BaseAppV2 {
+
   override var appName: String = "DwdDimApp"
   override var groupId: String = "DwdDimApp"
   override var topics: Seq[String] = Seq(
@@ -21,13 +23,14 @@ object DwdDimApp extends BaseAppV2 {
     "ods_base_province",
     "ods_base_trademark")
 
-  def saveToPhoenix[T <: Product](rdd: RDD[(String, String)], odsTopic: String, tableName: String, cols: Seq[String]) = {
+  def saveToPhoenix[T <: Product](rdd: RDD[(String, String)], odsTopic: String, tableName: String, cols: Seq[String])
+                                 (implicit mf: scala.reflect.Manifest[T]) = {
     import org.apache.phoenix.spark._
     rdd.filter(_._1==odsTopic)
       .map{
         case (topic,content)=>
-          implicit val f = org.json4s.DefaultFormats
-          JsonMethods.parse(content).extract[T]
+          val formats = org.json4s.DefaultFormats
+          JsonMethods.parse(content).extract[T](formats,mf)
       }.saveToPhoenix(tableName,
       cols,//顺序和样例类保持一致
       zkUrl = Option("node:2181"))
@@ -43,7 +46,8 @@ object DwdDimApp extends BaseAppV2 {
     }).foreachRDD(rdd=>{
       topics.foreach{
         case "ods_base_province" =>
-          print("")
+          import org.apache.phoenix.spark._
+          saveToPhoenix[ProvinceInfo](rdd,"ods_base_province","gmall_province_info",Seq("ID", "NAME", "AREA_CODE", "ISO_CODE"))
         case "ods_user_info"=>
           import org.apache.phoenix.spark._
 
