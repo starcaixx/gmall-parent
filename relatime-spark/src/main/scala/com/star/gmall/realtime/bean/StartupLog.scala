@@ -23,8 +23,8 @@ case class OrderInfo(id: Long,
                      province_id: Long,
                      order_status: String,
                      user_id: String,
-                     final_total_amount: Double,
-                     benefit_reduce_amount: Double,
+                     total_amount: Double,
+                     activity_reduce_amount: Double,
                      original_total_amount: Double,
                      feight_fee: Double,
                      expire_time: String,
@@ -36,7 +36,7 @@ case class OrderInfo(id: Long,
 
                      var province_name: String = null,
                      var province_area_code: String = null,
-                     var province_iso_code:String, //国际地区编码
+                     var province_iso_code:String = null, //国际地区编码
 
                      var user_age_group: String = null,
                      var user_gender: String = null) {
@@ -69,7 +69,7 @@ case class UserInfo(id: String,
 }
 
 
-case class BaseTrademark(tm_id:String , tm_name:String)
+case class BaseTrademark(id:String , tm_name:String)
 
 case class BaseCategory3(id: String,
                          name: String,
@@ -160,14 +160,14 @@ case class OrderWide( // 来源 OrderInfo
     mergeOrderDetail(orderDetail)
   }
 
-  def mergeOrderInfo(orderInfo: OrderInfo): Unit = {
+  def mergeOrderInfo(orderInfo: OrderInfo): OrderWide = {
     if (orderInfo != null) {
       this.order_id = orderInfo.id
       this.province_id = orderInfo.province_id
       this.order_status = orderInfo.order_status
       this.user_id = orderInfo.user_id
-      this.final_total_amount = orderInfo.final_total_amount
-      this.benefit_reduce_amount = orderInfo.benefit_reduce_amount
+      this.final_total_amount = orderInfo.total_amount
+      this.benefit_reduce_amount = orderInfo.activity_reduce_amount
       this.original_total_amount = orderInfo.original_total_amount
       this.feight_fee = orderInfo.feight_fee
       this.expire_time = orderInfo.expire_time
@@ -181,8 +181,9 @@ case class OrderWide( // 来源 OrderInfo
       this.user_age_group = orderInfo.user_age_group
       this.user_gender = orderInfo.user_gender
     }
+    this
   }
-  def mergeOrderDetail(orderDetail: OrderDetail): Unit = {
+  def mergeOrderDetail(orderDetail: OrderDetail): OrderWide = {
     if (orderDetail != null) {
       this.order_detail_id = orderDetail.id
       this.sku_id = orderDetail.sku_id
@@ -197,6 +198,7 @@ case class OrderWide( // 来源 OrderInfo
       this.tm_name = orderDetail.tm_name
       this.category3_name = orderDetail.category3_name
     }
+    this
   }
 }
 

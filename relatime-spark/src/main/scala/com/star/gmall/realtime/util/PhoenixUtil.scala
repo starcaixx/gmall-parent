@@ -11,6 +11,7 @@ object PhoenixUtil {
     var result = List[Map[String, Object]]( )
 
     val conn = DriverManager.getConnection(url)
+    println("sql:"+sql)
     val ps: PreparedStatement = conn.prepareStatement(sql)
     (1 to args.size).foreach(i => {
       ps.setObject(i, args(i - 1))

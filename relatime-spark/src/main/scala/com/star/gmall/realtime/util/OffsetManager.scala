@@ -61,7 +61,7 @@ object OffsetManager {
       }.asJava
 
     val client = RedisUtil.getClient
-    print("topic->offset:"+fieldAndValue)
+    println("topic->offset:"+fieldAndValue)
     client.hmset(key,fieldAndValue)
     client.close()
   }
@@ -74,7 +74,7 @@ object OffsetManager {
       .asJava
 
     val client = RedisUtil.getClient
-    print("topic->offset:"+fieldToValue)
+    println("topic->offset:"+fieldToValue)
     client.hmset(s"offset:$groupId:$topic",fieldToValue)
     client.close()
   }

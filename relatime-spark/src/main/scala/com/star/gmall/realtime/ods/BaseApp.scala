@@ -6,17 +6,34 @@ import org.apache.spark.SparkConf
 import org.apache.spark.streaming.dstream.DStream
 import org.apache.spark.streaming.kafka010.{HasOffsetRanges, OffsetRange}
 import org.apache.spark.streaming.{Seconds, StreamingContext}
+import org.json4s.CustomSerializer
+import org.json4s.JsonAST.{JDouble, JInt, JLong, JString}
 
 import scala.collection.mutable.ListBuffer
 
 abstract class BaseApp {
+  val f = org.json4s.DefaultFormats
+
   var appName:String
   var groupId:String
   var topic:String
 
-  def run(ssc:StreamingContext,offsetRanges:ListBuffer[OffsetRange],sourceStream:DStream[ConsumerRecord[String,String]]): Unit ={
+  val toLong = new CustomSerializer[Long](ser = format=>({
+    case JString(s) => s.toLong
+    case JInt(s) => s.toLong
+  },
+    {case s:Long => JLong(s)})
+  )
 
-  }
+  val toDouble = new CustomSerializer[Double](ser = format=>({
+    case JString(s) => s.toDouble
+    case JInt(s) => s.toDouble
+  },
+    {case s:Double => JDouble(s)})
+  )
+
+  def run(ssc:StreamingContext,offsetRanges:ListBuffer[OffsetRange],sourceStream:DStream[ConsumerRecord[String,String]])
+
   def main(args: Array[String]): Unit = {
     val conf = new SparkConf().setMaster("local[2]").setAppName(appName)
     val ssc = new StreamingContext(conf, Seconds(10))

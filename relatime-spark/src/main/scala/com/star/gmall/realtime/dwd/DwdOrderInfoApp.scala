@@ -1,8 +1,10 @@
-package com.star.gmall.realtime.ods
+package com.star.gmall.realtime.dwd
+
 import java.time.LocalDate
 
 import com.star.gmall.realtime.bean.{OrderInfo, ProvinceInfo, UserInfo, UserStatus}
-import com.star.gmall.realtime.util.{EsUtils, MyKafkaUtil, OffsetManager, PhoenixUtil, SparkSqlUtil}
+import com.star.gmall.realtime.ods.BaseApp
+import com.star.gmall.realtime.util._
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.spark.sql.SparkSession
@@ -18,24 +20,25 @@ object DwdOrderInfoApp extends BaseApp {
   override var groupId: String = "DwdOrderInfoApp"
   override var topic: String = "ods_order_info"
 
-  implicit val f = org.json4s.DefaultFormats
+  implicit val format = f
   override def run(ssc: StreamingContext, offsetRanges: ListBuffer[OffsetRange], sourceStream: DStream[ConsumerRecord[String, String]]): Unit = {
 
-    val firstOrderInfoDS = sourceStream.map(record => {
+    val value = sourceStream.map(record => {
       JsonMethods.parse(record.value()).extract[OrderInfo]
-    }).mapPartitions(orders => {
-      val orderInfoList = orders.toList
-      val userIds = orderInfoList.map(_.user_id).mkString(",")
-      //g根据该批次的user_id查询是否是首单
-      val userIdToConsumed = PhoenixUtil.query(s"select user_id,is_consumed from user_status where user_id in ($userIds)",
-        Nil).map(map => {
-        map("user_id").toString -> map("is_consumed").asInstanceOf[Boolean]
-      }).toMap
-      //反向判断是否是首单
-      orderInfoList.map(order => {
-        order.is_first_order = !userIdToConsumed.contains(order.user_id.toString)
-        order
-      }).toIterator
+    })
+    val firstOrderInfoDS = value.mapPartitions(orders => {
+        val orderInfoList = orders.toList
+        val userIds = orderInfoList.map(_.user_id).mkString("','")
+        //根据该批次的user_id查询是否是首单
+        val userIdToConsumed = PhoenixUtil.query(s"select user_id,is_consumed from user_status where user_id in ('${userIds}')",
+          Nil).map(map => {
+          map("user_id").toString -> map("is_consumed").asInstanceOf[Boolean]
+        }).toMap
+        //反向判断是否是首单
+        orderInfoList.map(order => {
+          order.is_first_order = !userIdToConsumed.contains(order.user_id.toString)
+          order
+        }).toIterator
     })
 
     val resultDS = firstOrderInfoDS.map(order => (order.user_id, order))
@@ -92,6 +95,7 @@ object DwdOrderInfoApp extends BaseApp {
     })
 
 
+    resultDS.print(10)
     resultDS.foreachRDD(rdd=>{
       import org.apache.phoenix.spark._
       rdd.cache()
