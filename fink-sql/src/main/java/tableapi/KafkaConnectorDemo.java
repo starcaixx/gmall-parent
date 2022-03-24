@@ -1,6 +1,7 @@
 package tableapi;
 
 import org.apache.flink.table.api.EnvironmentSettings;
+import org.apache.flink.table.api.SqlDialect;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableEnvironment;
 
@@ -10,184 +11,98 @@ import java.util.List;
 public class KafkaConnectorDemo {
     public static void main(String[] args) {
         EnvironmentSettings settings = EnvironmentSettings.newInstance()
-                .inStreamingMode().build();
+//                .inBatchMode()
+                .inStreamingMode()
+                .build();
         TableEnvironment tableEnv = TableEnvironment.create(settings);
 
 //        List<String> sql = Files.readAllLines(path);
 //        tableEnv.executeSql(sql.get(0));
+
+        tableEnv.getConfig().setSqlDialect(SqlDialect.DEFAULT);
+        tableEnv.executeSql("drop table if exists kafka_dwd_upchina_res_sec_rate");
+        tableEnv.executeSql("CREATE TABLE kafka_dwd_upchina_res_sec_rate (\n" +
+                "`partition` BIGINT METADATA VIRTUAL," +
+                "`offset` BIGINT METADATA VIRTUAL," +
+                "  `ISVALID` SMALLINT,\n" +
+                "  `RES_ID` bigint,\n" +
+                "  `SEC_UNI_CODE` bigint,\n" +
+                "  `RES_RATE_PAR` SMALLINT,\n" +
+                "  `LAST_RATE_PAR` SMALLINT,\n" +
+                "  `IS_FIRST` SMALLINT,\n" +
+                "  `RATE_CHG_PAR` SMALLINT,\n" +
+                "  `CUR_TYPE_PAR` SMALLINT,\n" +
+                "  `LOW_EXPE_PRICE` decimal(20,2),\n" +
+                "  `HIGH_EXPE_PRICE` decimal(20,2),\n" +
+                "  `EXPE_PERIOD_PAR` SMALLINT,\n" +
+                "  `EXPE_START_DATE` string,\n" +
+                "  `EXPE_END_DATE` string,\n" +
+                "  `CREATETIME` TIMESTAMP(3),\n" +
+                "  `UPDATETIME` TIMESTAMP(3),\n" +
+                "  `PRICE_CHAN_PAR` SMALLINT,\n" +
+                "  WATERMARK FOR UPDATETIME as UPDATETIME - INTERVAL '10' SECOND \n"
+                + " ) WITH ("
+                + " 'connector' = 'kafka',"
+                + " 'topic' = 'dwd_upchina_res_sec_rate',"
+                + " 'properties.bootstrap.servers' = 'master:9092',"
+                + " 'properties.group.id' = 'flinkkafkademo',"
+                + " 'scan.startup.mode' = 'specific-offsets',"
+                + " 'scan.startup.specific-offsets' = '" + "partition:0,offset:0" + "',"
+                + " 'format' = 'json'"
+                + ")");
+
+        tableEnv.from("kafka_dwd_upchina_res_sec_rate").limit(10).execute().print();
+
+        /*tableEnv.executeSql(
+                "SELECT " +
+                "`partition`," +
+                "`offset`," +
+                "ISVALID,RES_ID,SEC_UNI_CODE,RES_RATE_PAR,LAST_RATE_PAR," +
+                "IS_FIRST,RATE_CHG_PAR,CUR_TYPE_PAR,LOW_EXPE_PRICE," +
+                "HIGH_EXPE_PRICE,EXPE_PERIOD_PAR,EXPE_START_DATE,EXPE_END_DATE," +
+                "CREATETIME,UPDATETIME,PRICE_CHAN_PAR," +
+                "DATE_FORMAT(UPDATETIME, 'yyyy-MM-dd'), " +
+                "DATE_FORMAT(UPDATETIME, 'HH') " +
+                "FROM kafka_dwd_upchina_res_sec_rate limit 10");*/
+
         /*tableEnv.executeSql(
                 "CREATE TABLE user_log1 (\n" +
+                        "`partition` BIGINT METADATA VIRTUAL," +
+                        "`offset` BIGINT METADATA VIRTUAL," +
                         "  user_id string,\n" +
                         "  item_id string,\n" +
                         "  category_id string,\n" +
                         "  behavior STRING,\n" +
-                        "  ts TIMESTAMP(1) WITH LOCAL TIME ZONE,\n" +
-                        "  WATERMARK FOR ts AS ts - INTERVAL '2' SECOND\n" +
+                        "  ts STRING,\n" +
+                        " wm as cast(concat(substr(ts,1,10),' ',substr(ts,12,8)) as timestamp_ltz(0)), " +
+                        "  WATERMARK FOR wm as wm - INTERVAL '10' SECOND \n" +
                         ") WITH (\n" +
                         "  'connector' = 'kafka',\n" +
                         "  'topic' = 'user_behavior',\n" +
                         " 'properties.group.id' = 'testGroup'," +
-                        "  'properties.bootstrap.servers' = 'node4:9092',\n" +
-                        "  'scan.startup.mode' = 'latest-offset',"  +
+                        "  'properties.bootstrap.servers' = 'master:9092',\n" +
+                        "  'scan.startup.mode' = 'earliest-offset',"  +
                         "  'format' = 'json'\n" +
                         ")");
 
-        Table table = tableEnv.from("user_log1");
-        table.execute().print();*/
+//        tableEnv.from("user_log1").execute().print();
         tableEnv.executeSql(
+                "SELECT " +
+                "`partition`," +
+                "`offset`," +
+                "user_id," +
+                "item_id," +
+                "category_id," +
+                "behavior," +
+                "DATE_FORMAT(wm, 'yyyy-MM-dd'), " +
+                "DATE_FORMAT(wm, 'HH') " +
+                "FROM user_log1 ").print();*/
+
+        /*tableEnv.executeSql(
                 "CREATE TABLE finbalashort (\n" +
                         "ISVALID int,\n" +
                         "CREATETIME TIMESTAMP(6),\n" +
                         "UPDATETIME TIMESTAMP(3),\n" +
-                        "COM_UNI_CODE bigint,\n" +
-                        "END_DATE TIMESTAMP(6),\n" +
-                        "CURY_TYPE_PAR int,\n" +
-                        "CURY_UNIT_PAR int,\n" +
-                        "BS_11001 decimal(24,8),\n" +
-                        "BS_11002 decimal(24,8),\n" +
-                        "BS_11003 decimal(24,8),\n" +
-                        "BS_11000 decimal(24,8),\n" +
-                        "BS_12001 decimal(24,8),\n" +
-                        "BS_10000 decimal(24,8),\n" +
-                        "BS_21001 decimal(24,8),\n" +
-                        "BS_21002 decimal(24,8),\n" +
-                        "BS_21000 decimal(24,8),\n" +
-                        "BS_22000 decimal(24,8),\n" +
-                        "BS_20000 decimal(24,8),\n" +
-                        "BS_30001 decimal(24,8),\n" +
-                        "BS_30002 decimal(24,8),\n" +
-                        "BS_30003 decimal(24,8),\n" +
-                        "BS_30004 decimal(24,8),\n" +
-                        "BS_31000 decimal(24,8),\n" +
-                        "BS_32000 decimal(24,8),\n" +
-                        "BS_30000 decimal(24,8),\n" +
-                        "BS_11016 decimal(24,8),\n" +
-                        "BS_11031 decimal(24,8),\n" +
-                        "BS_11067 decimal(24,8),\n" +
-                        "BS_11070 decimal(24,8),\n" +
-                        "BS_11079 decimal(24,8),\n" +
-                        "BS_11082 decimal(24,8),\n" +
-                        "BS_12013 decimal(24,8),\n" +
-                        "BS_12016 decimal(24,8),\n" +
-                        "BS_12019 decimal(24,8),\n" +
-                        "BS_12022 decimal(24,8),\n" +
-                        "BS_12025 decimal(24,8),\n" +
-                        "BS_12031 decimal(24,8),\n" +
-                        "BS_12034 decimal(24,8),\n" +
-                        "BS_12037 decimal(24,8),\n" +
-                        "BS_12040 decimal(24,8),\n" +
-                        "BS_12043 decimal(24,8),\n" +
-                        "BS_12046 decimal(24,8),\n" +
-                        "BS_12049 decimal(24,8),\n" +
-                        "BS_12052 decimal(24,8),\n" +
-                        "BS_12055 decimal(24,8),\n" +
-                        "BS_12058 decimal(24,8),\n" +
-                        "BS_12064 decimal(24,8),\n" +
-                        "BS_12000 decimal(24,8),\n" +
-                        "BS_21003 decimal(24,8),\n" +
-                        "BS_21019 decimal(24,8),\n" +
-                        "BS_21070 decimal(24,8),\n" +
-                        "BS_21079 decimal(24,8),\n" +
-                        "BS_21082 decimal(24,8),\n" +
-                        "BS_21085 decimal(24,8),\n" +
-                        "BS_21088 decimal(24,8),\n" +
-                        "BS_21091 decimal(24,8),\n" +
-                        "BS_21094 decimal(24,8),\n" +
-                        "BS_21097 decimal(24,8),\n" +
-                        "BS_21100 decimal(24,8),\n" +
-                        "BS_22001 decimal(24,8),\n" +
-                        "BS_22004 decimal(24,8),\n" +
-                        "BS_22007 decimal(24,8),\n" +
-                        "BS_22010 decimal(24,8),\n" +
-                        "BS_22013 decimal(24,8),\n" +
-                        "BS_22019 decimal(24,8),\n" +
-                        "BS_22022 decimal(24,8),\n" +
-                        "BS_30005 decimal(24,8),\n" +
-                        "BS_30006 decimal(24,8),\n" +
-                        "BS_40000 decimal(24,8),\n" +
-                        "BS_1100101 decimal(24,8),\n" +
-                        "BS_11004 decimal(24,8),\n" +
-                        "BS_1100401 decimal(24,8),\n" +
-                        "BS_11007 decimal(24,8),\n" +
-                        "BS_11010 decimal(24,8),\n" +
-                        "BS_11013 decimal(24,8),\n" +
-                        "BS_11019 decimal(24,8),\n" +
-                        "BS_11022 decimal(24,8),\n" +
-                        "BS_11025 decimal(24,8),\n" +
-                        "BS_11028 decimal(24,8),\n" +
-                        "BS_11034 decimal(24,8),\n" +
-                        "BS_11037 decimal(24,8),\n" +
-                        "BS_11043 decimal(24,8),\n" +
-                        "BS_11046 decimal(24,8),\n" +
-                        "BS_11049 decimal(24,8),\n" +
-                        "BS_11052 decimal(24,8),\n" +
-                        "BS_11055 decimal(24,8),\n" +
-                        "BS_11058 decimal(24,8),\n" +
-                        "BS_11061 decimal(24,8),\n" +
-                        "BS_11064 decimal(24,8),\n" +
-                        "BS_1107301 decimal(24,8),\n" +
-                        "BS_11076 decimal(24,8),\n" +
-                        "BS_CASPEC decimal(24,8),\n" +
-                        "BS_12002 decimal(24,8),\n" +
-                        "BS_12004 decimal(24,8),\n" +
-                        "BS_12007 decimal(24,8),\n" +
-                        "BS_12010 decimal(24,8),\n" +
-                        "BS_1204601 decimal(24,8),\n" +
-                        "BS_12061 decimal(24,8),\n" +
-                        "BS_12067 decimal(24,8),\n" +
-                        "BS_NCASPEC decimal(24,8),\n" +
-                        "BS_ASPEC decimal(24,8),\n" +
-                        "BS_2100101 decimal(24,8),\n" +
-                        "BS_21004 decimal(24,8),\n" +
-                        "BS_21007 decimal(24,8),\n" +
-                        "BS_21010 decimal(24,8),\n" +
-                        "BS_21013 decimal(24,8),\n" +
-                        "BS_21016 decimal(24,8),\n" +
-                        "BS_21022 decimal(24,8),\n" +
-                        "BS_21025 decimal(24,8),\n" +
-                        "BS_21028 decimal(24,8),\n" +
-                        "BS_21031 decimal(24,8),\n" +
-                        "BS_21034 decimal(24,8),\n" +
-                        "BS_21037 decimal(24,8),\n" +
-                        "BS_21040 decimal(24,8),\n" +
-                        "BS_21043 decimal(24,8),\n" +
-                        "BS_21046 decimal(24,8),\n" +
-                        "BS_21049 decimal(24,8),\n" +
-                        "BS_21052 decimal(24,8),\n" +
-                        "BS_21055 decimal(24,8),\n" +
-                        "BS_21058 decimal(24,8),\n" +
-                        "BS_21061 decimal(24,8),\n" +
-                        "BS_21064 decimal(24,8),\n" +
-                        "BS_21067 decimal(24,8),\n" +
-                        "BS_CLSPEC decimal(24,8),\n" +
-                        "BS_22016 decimal(24,8),\n" +
-                        "BS_22025 decimal(24,8),\n" +
-                        "BS_NCLSPEC decimal(24,8),\n" +
-                        "BS_LSPEC decimal(24,8),\n" +
-                        "BS_31007 decimal(24,8),\n" +
-                        "BS_31022 decimal(24,8),\n" +
-                        "BS_31025 decimal(24,8),\n" +
-                        "BS_PCESPEC decimal(24,8),\n" +
-                        "BS_ESPEC decimal(24,8),\n" +
-                        "BS_LESPEC decimal(24,8),\n" +
-                        "SPEC_DES string,\n" +
-                        "INFO_PUB_DATE string,\n" +
-                        "BS_31037 decimal(24,8),\n" +
-                        "BS_11029 decimal(24,8),\n" +
-                        "BS_21068 decimal(24,8),\n" +
-                        "BS_11017 decimal(24,8),\n" +
-                        "BS_11026 decimal(24,8),\n" +
-                        "BS_11027 decimal(24,8),\n" +
-                        "BS_12003 decimal(24,8),\n" +
-                        "BS_12005 decimal(24,8),\n" +
-                        "BS_12011 decimal(24,8),\n" +
-                        "BS_12012 decimal(24,8),\n" +
-                        "BS_12032 decimal(24,8),\n" +
-                        "BS_21017 decimal(24,8),\n" +
-                        "BS_21032 decimal(24,8),\n" +
-                        "BS_22005 decimal(24,8),\n" +
-                        "BS_22017 decimal(24,8),\n" +
-                        "BS_11018 decimal(24,8),\n" +
                         "BS_21026 decimal(24,8),\n" +
                         "UNIQUE_INDEX string,\n" +
                         "IS_DEL int,\n" +
@@ -203,11 +118,11 @@ public class KafkaConnectorDemo {
                         "  'scan.startup.mode' = 'earliest-offset',\n" +
                         "  'format' = 'json'\n" +
                         ")"
-        );
+        );*/
 
 //        tableEnv.from("KafkaTable").execute().print();
 
-        tableEnv.executeSql(
+        /*tableEnv.executeSql(
                 "CREATE TABLE stkinfo (\n" +
                         "  isvalid string ,\n" +
                         "  createtime varchar(30) ,\n" +
@@ -235,16 +150,16 @@ public class KafkaConnectorDemo {
                         "  PRIMARY KEY (stk_uni_code) NOT ENFORCED\n" +
                         ") WITH (\n" +
                         "    'connector.type' = 'jdbc',\n" +
-                        "    'connector.url' = 'jdbc:mysql://master:20452/dataplat_ads',\n" +
+                        "    'connector.url' = 'jdbc:mysql://bj-cynosdbmysql-grp-rzunn0bc.sql.tencentcdb.com:20452/dataplat_ads',\n" +
                         "    'connector.table' = 'dim_stk_basic_info',\n" +
-                        "    'connector.username' = 'xxxxx',\n" +
-                        "    'connector.password' = '123456',\n" +
+                        "    'connector.username' = 'star_test',\n" +
+                        "    'connector.password' = '3iu8dn4H#2JD',\n" +
                         "    'connector.write.flush.max-rows' = '1'\n" +
                         ")"
         );
 
-//        tableEnv.from("stkinfo").execute().print();
-        tableEnv.executeSql(
+        tableEnv.from("stkinfo").execute().print();*/
+        /*tableEnv.executeSql(
                 "SELECT \n" +
                         "o.COM_UNI_CODE,\n" +
                         "stkinfo.stk_uni_code,\n" +
@@ -252,6 +167,6 @@ public class KafkaConnectorDemo {
                         "FROM finbalashort as o \n" +
                         "LEFT JOIN stkinfo FOR SYSTEM_TIME AS OF o.proctime  \n" +
                         "ON o.COM_UNI_CODE = stkinfo.com_uni_code"
-        ).print();
+        ).print();*/
     }
 }
