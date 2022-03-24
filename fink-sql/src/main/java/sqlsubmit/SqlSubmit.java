@@ -50,7 +50,7 @@ public class SqlSubmit {
 
     private void run() throws Exception {
         EnvironmentSettings settings = EnvironmentSettings.newInstance()
-                .useBlinkPlanner()
+//                .useBlinkPlanner()
                 .inStreamingMode()
                 .build();
         this.tEnv = TableEnvironment.create(settings);
@@ -59,7 +59,7 @@ public class SqlSubmit {
         for (SqlCommandParser.SqlCommandCall call : calls) {
             callCommand(call);
         }
-        tEnv.execute("SQL Job");
+//        tEnv.execute("SQL Job");
     }
 
     // --------------------------------------------------------------------------------------------
@@ -89,7 +89,7 @@ public class SqlSubmit {
     private void callCreateTable(SqlCommandParser.SqlCommandCall cmdCall) {
         String ddl = cmdCall.operands[0];
         try {
-            tEnv.sqlUpdate(ddl);
+            tEnv.executeSql(ddl);
         } catch (SqlParserException e) {
             throw new RuntimeException("SQL parse failed:\n" + ddl + "\n", e);
         }
@@ -98,7 +98,7 @@ public class SqlSubmit {
     private void callInsertInto(SqlCommandParser.SqlCommandCall cmdCall) {
         String dml = cmdCall.operands[0];
         try {
-            tEnv.sqlUpdate(dml);
+            tEnv.executeSql(dml);
         } catch (SqlParserException e) {
             throw new RuntimeException("SQL parse failed:\n" + dml + "\n", e);
         }
